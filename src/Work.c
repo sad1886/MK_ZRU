@@ -115,6 +115,10 @@ extern volatile unsigned char bTimeOutCmd;										// Флаг Время ож�
 
 extern unsigned char set100ms, yes100ms;
 
+//--------------------------- для алгоритма переменные ------------------------------------------------------------------------------
+extern unsigned char mode_Razryad; //если не 0, значит мы находимся в режиме разряда (ток разряда больше нуля)
+extern unsigned char mode_Zaryad; //если не 0, значит мы находимся в режиме заряда (ток заряда больше нуля) 
+
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 // Задержка
 void Wait_ (int wait)	{	int i=0;	while (i < wait) i++;	}
@@ -492,37 +496,43 @@ void PutParamADC (void)																																				// С 14.07.20
 				Vals_ZRU[iadc-1] = KoefZar[iMUK_ZRU][iadc-1] * (cUsm[iMUK_ZRU][iadc-1]-Uadc);											// Реальные значения I заряда
 				// Определение статуса ЗРУ
 				if ((Vals_ZRU[0] > fNul)||(Vals_ZRU[1] > fNul))	{																									// fNul = 0.8
-					if (stat1[iMUK_ZRU]	& bRazryad) {StepAlgortmZar = bInitZarayd;	}
-//					stat1[iMUK_ZRU]	|= bZaryad;
+					if (mode_Razryad != 0) 
+					{
+						StepAlgortmZar = bInitZarayd;																																//начинаем алгоритм заново
+						//в момент перехода из одного режима в другой обнуляем эти флаги
+						stat2[iMUK_ZRU] = 0;
+						stat3[iMUK_ZRU] &= ~(errNoOgrTokRazr|errNoOgrTokZar|errPrevDopustT);  											
+					} //если был разряд, значит нужно начать заново алгоритм заряда
+					mode_Razryad = 0; //больше нет разряда								
+					mode_Zaryad = 1; //теперь у нас заряд
 					C_raz = 0;	W_raz = 0;
 				}	
-//				else	{
-//					stat1[iMUK_ZRU]	&= ~bZaryad;	
-//				}
 				// Получение значений Зарядного и Разрядного токов
 				if (Vals_ZRU[iadc-1]<0.5)	Vals_ZRU[iadc-1] = 0;
 				aIzar.Fdata = Vals_ZRU[iadc-1];																																		// Для передачи по CAN в БЭ
 				aI_zar = Vals_ZRU[iadc-1];
 				aI_razr = 0;	Vals_ZRU[iadc-1+2] = aI_razr;																												// Для телеметрии
-//				stat1[iMUK_ZRU]	&= ~bRazryad;	
 			}																																																		
 			else	{																																															// Р А З Р Я Д
 				//Vals_ZRU[iadc-1+2] = Uadc;																																			// Напряжение АЦП
 				Vals_ZRU[iadc-1+2] = KoefRazr[iMUK_ZRU][iadc-1] * (Uadc-cUsm[iMUK_ZRU][iadc-1]);									// Реальные значения I разряда
 				// Определение статуса ЗРУ
 				if ((Vals_ZRU[2] > fNul)||(Vals_ZRU[3] > fNul))	{
-					if (stat1[iMUK_ZRU]	& bZaryad) {StepAlgortmRazr = bInitRazryda;	}
-//					stat1[iMUK_ZRU]	|= bRazryad;		
+					if (mode_Zaryad != 0) 
+					{
+						StepAlgortmRazr = bInitRazryda;																															//начинаем алгоритм заново
+						//в момент перехода из одного режима в другой обнуляем эти флаги							
+						stat2[iMUK_ZRU] = 0;
+						stat3[iMUK_ZRU] &= ~(errNoOgrTokRazr|errNoOgrTokZar|errPrevDopustT|errNoOtklRazr);  											
+					} //если был заряд, значит нужно начать заново алгоритм разряда
+					mode_Zaryad = 0; //больше нет заряда						
+					mode_Razryad = 1; //теперь у нас разряд 
 				}
-//				else	{
-//					stat1[iMUK_ZRU]	&= ~bRazryad;		
-//				}
 				// Получение значений Зарядного и Разрядного токов
 				if (Vals_ZRU[iadc-1+2]<0.5)		Vals_ZRU[iadc-1+2] = 0;
 				aIrazr.Fdata = Vals_ZRU[iadc-1+2];
 				aI_razr = Vals_ZRU[iadc-1+2];
 				aI_zar = 0;		Vals_ZRU[iadc-1] = aI_zar;
-//				stat1[iMUK_ZRU]	&= ~bZaryad;
 			}																																																		
 			if (iadc == 2)	iadc++;																																							// Пропуск канала измерения АЦП №3
 			break;
@@ -530,20 +540,20 @@ void PutParamADC (void)																																				// С 14.07.20
 		case 4:		i = iadc-4;		iadc++;																																				// Пропуск канала измерения АЦП №5
 			//Uadc = 3.5;
 			Vals_ZRU[iadc-1] = KoefUABT[iMUK_ZRU][i] * Uadc + dUABT[iMUK_ZRU][i];																// Реальные значения U
-			if (stat1[iMUK_ZRU]	& bZaryad)		Vals_ZRU[iadc-1] -= aI_zar * KoefIzarABT[iMUK_ZRU];								// Реальные значения U
-			if (stat1[iMUK_ZRU]	& bRazryad)		Vals_ZRU[iadc-1] += aI_razr* KoefIrazABT[iMUK_ZRU];								// Реальные значения U
+			if (mode_Zaryad)		Vals_ZRU[iadc-1] -= aI_zar * KoefIzarABT[iMUK_ZRU];								// Реальные значения U
+			if (mode_Razryad)		Vals_ZRU[iadc-1] += aI_razr* KoefIrazABT[iMUK_ZRU];								// Реальные значения U
 			Vals_ZRU[iadc]   = Vals_ZRU[iadc-1];																																// Реальные значения U
 			break;
 			
 		case 6:		i = iadc-5;		
 			Vals_ZRU[iadc+1] = KoefUABT[iMUK_ZRU][i] * Uadc + dUABT[iMUK_ZRU][i];																// Реальные значения T1
-			if (stat1[iMUK_ZRU]	& bZaryad)		Vals_ZRU[iadc-1] -= aI_zar * KoefIzarT[iMUK_ZRU][iadc-6];					// Корекция Т1
-			if (stat1[iMUK_ZRU]	& bRazryad)		Vals_ZRU[iadc-1] += aI_razr* KoefIrazT[iMUK_ZRU][iadc-6];					// Корекция Т1
+			if (mode_Zaryad)		Vals_ZRU[iadc-1] -= aI_zar * KoefIzarT[iMUK_ZRU][iadc-6];					// Корекция Т1
+			if (mode_Razryad)		Vals_ZRU[iadc-1] += aI_razr* KoefIrazT[iMUK_ZRU][iadc-6];					// Корекция Т1
 		break;
 		case 7:		i = iadc-5;		
 			Vals_ZRU[iadc-1] = KoefUABT[iMUK_ZRU][i] * Uadc + dUABT[iMUK_ZRU][i];																// Реальные значения T2
-			if (stat1[iMUK_ZRU]	& bZaryad)		Vals_ZRU[iadc-1] -= aI_zar * KoefIzarT[iMUK_ZRU][iadc-6];					// Корекция Т2
-			if (stat1[iMUK_ZRU]	& bRazryad)		Vals_ZRU[iadc-1] += aI_razr* KoefIrazT[iMUK_ZRU][iadc-6];					// Корекция Т2
+			if (mode_Zaryad)		Vals_ZRU[iadc-1] -= aI_zar * KoefIzarT[iMUK_ZRU][iadc-6];					// Корекция Т2
+			if (mode_Razryad)		Vals_ZRU[iadc-1] += aI_razr* KoefIrazT[iMUK_ZRU][iadc-6];					// Корекция Т2
 		break;
 	}			
 	

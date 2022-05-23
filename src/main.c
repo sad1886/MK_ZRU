@@ -266,6 +266,10 @@ unsigned char AddSec;
 unsigned char set100ms, yes100ms;
 
 unsigned char repeatOne;
+//--------------------------- для алгоритма переменные ------------------------------------------------------------------------------
+unsigned char mode_Razryad = 0; //если не 0, значит мы находимся в режиме разряда (ток разряда больше нуля)
+unsigned char mode_Zaryad = 0; //если не 0, значит мы находимся в режиме заряда (ток заряда больше нуля) 
+
 //-------------------------------------------------------------------------------------------------------------------------
 // Подготовка мажоритированных данных для телеметрии
 unsigned int MajorStatZRU(unsigned char * stat);
@@ -713,8 +717,8 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 	case bWaitOtkl_Zarayd:			
 	
 		if ((!bPauza)&&
-				(stat3[iMUK_ZRU2] & bZaprZar)||																	// включен запрет Заряда
-				(stat3[iMUK_ZRU3] & bZaprZar)) 
+				((stat3[iMUK_ZRU2] & bZaprZar)||																	// включен запрет Заряда
+				(stat3[iMUK_ZRU3] & bZaprZar))) 
 		{
 			//if	(aI_zar > aIkomp)		stat2[iMUK_ZRU] |= errNoOtklZar;					// Собщение "Не отключился Заряд АБ"=1
 			if	(aI_zar < 50)		stat2[iMUK_ZRU] |= errNoOtklZar;							// Собщение "Не отключился Заряд АБ"=1
@@ -1292,7 +1296,8 @@ void Podzarayd (void)														/*	_Подзаряд__Н_В_А_Б_ */
 	case bOtkl_ZaprZarayd:						
 		
 		pOtkl_Zapr_Zarayd();																								// ОТКЛ ЗАПР ЗАРЯДА
-		stat2[iMUK_ZRU] &= ~errNoVklZar;																		// Собщение "Не включился заряд АБ"=0
+		// удаляем сообщения об ошибках из мест, где им не место		
+		//stat2[iMUK_ZRU] &= ~errNoVklZar;																		// Собщение "Не включился заряд АБ"=0
 		LimsCount = vsCount5;	sCount=0;		bPauza=1;													// Активация паузы 5 сек
 		StepAlgortm = bWaitOtkl_ZaprZar;
 		break;
@@ -1301,7 +1306,8 @@ void Podzarayd (void)														/*	_Подзаряд__Н_В_А_Б_ */
 	case bWaitOtkl_ZaprZar:		
 
 		if (!bPauza) {
-			if	(aI_zar < aIkomp)	stat2[iMUK_ZRU] |= errNoVklZar;							// Собщение "Не включился Заряд АБ"=1
+// удаляем сообщения об ошибках из мест, где им не место					
+//			if	(aI_zar < aIkomp)	stat2[iMUK_ZRU] |= errNoVklZar;							// Собщение "Не включился Заряд АБ"=1
 			StepAlgortm = StepNext;																						// След шаг алгоритма
 		}
 		break;
@@ -1569,8 +1575,8 @@ void MakePack3(void)	// Заполнение пакета Краткой тел�
 {	float U_ABras, minUak=2, maxUak=0;
 	
 	//Коррекция напряжения 72-го АК АБ
-	if (stat1[iMUK_ZRU]	& bRazryad) {	fV_AB[76].Fdata += aI_razr*0.0;	}
-	if (stat1[iMUK_ZRU]	& bZaryad)  {	fV_AB[76].Fdata -= aI_zar *0.0;	}
+	if (mode_Razryad) {	fV_AB[76].Fdata += aI_razr*0.0;	}
+	if (mode_Zaryad)  {	fV_AB[76].Fdata -= aI_zar *0.0;	}
 	if (stat1[iMUK_ZRU] & bPC)		  {	fV_AB[76].Fdata += 0.1;	}
 	//Поиск мин макс Uak
 	for(i=4; i < 76; i++)		{
@@ -1935,8 +1941,10 @@ void Zaryd_NVAB (void)													/* _З_А_Р_Я_Д___Н_В_А_Б_ */
 	{
 	// .......... Инициализация алгоритма заряда ............................................................................
 	case bInitZarayd:
-		stat2[iMUK_ZRU] = 0;
-		stat3[iMUK_ZRU] &= ~(errNoOgrTokRazr|errNoOgrTokZar|errPrevDopustT);
+	//обнаружилось, что обнулять флаги в начале алгоритма некорректно - иногда мы сюда попадаем не в момент перехода из заряда в разряд (и наоборот)
+	//поэтому обнуляем флаги в функции PutParamADC в момент перехода из режима в режим		
+	//	stat2[iMUK_ZRU] = 0;
+	//stat3[iMUK_ZRU] &= ~(errNoOgrTokRazr|errNoOgrTokZar|errPrevDopustT);
 		
 	// .......... Отключение КОМП ...........................................................................................
 	case bOtklKomp:
@@ -1963,7 +1971,8 @@ void Zaryd_NVAB (void)													/* _З_А_Р_Я_Д___Н_В_А_Б_ */
 			if	(P <= 0.95*Pu[iUst])	{																				// Включение заряда
 				if ((iUst==2)&&(T >= Tu[2])&&(P >= 0.5*Pu[2]))	iUst=1;					// N=2
 				pOtkl_Zapr_Zarayd ();																						// Запрет заряда=0
-				stat2[iMUK_ZRU] &= ~errNoVklZar;																// Собщение "Не включился заряд АБ"=0
+// удаляем сообщения об ошибках из мест, где им не место					
+//				stat2[iMUK_ZRU] &= ~errNoVklZar;																// Собщение "Не включился заряд АБ"=0
 				LimsCount = vsCount5;		sCount=0;		bPauza=1;										// Активация паузы 5 сек
 				StepAlgortmZar = bWaitOtkl_ZaprZar;
 			}	
@@ -1978,10 +1987,12 @@ void Zaryd_NVAB (void)													/* _З_А_Р_Я_Д___Н_В_А_Б_ */
 	case bWaitOtkl_ZaprZar:		
 
 		if (!bPauza) {
-			if	((aI_zar < aIkomp)&&
-					 (stat1[iMUK_ZRU] & bZaryad))	stat2[iMUK_ZRU] |= errNoVklZar;	// Собщение "Не включился Заряд АБ"=1
+// удаляем сообщения об ошибках из мест, где им не место			
+//			if	((aI_zar < aIkomp)&&
+//					 (stat1[iMUK_ZRU] & bZaryad))	stat2[iMUK_ZRU] |= errNoVklZar;	// Собщение "Не включился Заряд АБ"=1
 			LimsCount = vsCount20;	sCount=0;		bPauza=1;											// Активация паузы 20 сек
 			StepAlgortmZar = bVkl_Zarayd;
+					
 		}
 		break;
 		
@@ -2037,7 +2048,7 @@ void Zaryd_NVAB (void)													/* _З_А_Р_Я_Д___Н_В_А_Б_ */
 			StepAlgortmZar = bVklKomp;
 		}	
 		else	{
-			if (stat1[iMUK_ZRU]	& bRazryad)		StepAlgortmZar = bInitZarayd;		//
+			if (mode_Razryad)		StepAlgortmZar = bInitZarayd;		//
 			else															StepAlgortmZar = bVkl_Zarayd;		// "Петля" - процесс заряда
 		}
 		break;
@@ -2062,7 +2073,8 @@ void Zaryd_NVAB (void)													/* _З_А_Р_Я_Д___Н_В_А_Б_ */
 	case bWaitOtkl_ZaprZar2:		
 
 		if (!bPauza) {
-			if	(aI_zar < aIkomp)	stat2[iMUK_ZRU] |= errNoVklZar;							// Собщение "Не включился Заряд АБ"=1
+// удаляем сообщения об ошибках из мест, где им не место				
+//			if	(aI_zar < aIkomp)	stat2[iMUK_ZRU] |= errNoVklZar;							// Собщение "Не включился Заряд АБ"=1
 			LimsCount = vsCount20;	sCount=0;		bPauza=1;											// Активация паузы 20 сек
 			StepAlgortmZar = bVkl_Zarayd_On;
 		}
@@ -2144,7 +2156,8 @@ void Zaryd_NVAB_noCAN (void)											/* _З_А_Р_Я_Д___Н_В_А_Б_ по п
 		if (!bPauza) {
 			if	(!bitNotZar)	{																								// Включение заряда
 				pOtkl_Zapr_Zarayd ();																						// Запрет заряда=0
-				stat2[iMUK_ZRU] &= ~errNoVklZar;																// Собщение "Не включился заряд АБ"=0
+// удаляем сообщения об ошибках из мест, где им не место	
+//				stat2[iMUK_ZRU] &= ~errNoVklZar;																// Собщение "Не включился заряд АБ"=0
 				LimsCount = vsCount5;	sCount=0;		bPauza=1;											// Активация паузы 5 сек
 				StepAlgortmZar = bWaitOtkl_ZaprZar;
 			}	
@@ -2158,7 +2171,8 @@ void Zaryd_NVAB_noCAN (void)											/* _З_А_Р_Я_Д___Н_В_А_Б_ по п
 	case bWaitOtkl_ZaprZar:		
 
 		if (!bPauza) {
-			if	(aI_zar < aIkomp)	stat2[iMUK_ZRU] |= errNoVklZar;							// Собщение "Не включился Заряд АБ"=1
+// удаляем сообщения об ошибках из мест, где им не место	
+//			if	(aI_zar < aIkomp)	stat2[iMUK_ZRU] |= errNoVklZar;							// Собщение "Не включился Заряд АБ"=1
 			LimsCount = vsCount20;	sCount=0;		bPauza=1;											// Активация паузы 20 сек
 			StepAlgortmZar = bVkl_Zarayd;
 		}
@@ -2187,7 +2201,7 @@ void Zaryd_NVAB_noCAN (void)											/* _З_А_Р_Я_Д___Н_В_А_Б_ по п
 				StepAlgortmZar = bWaitVkl_ZaprZara;															// След шаг алгоритма Ожидание включения запрета заряда
 		}
 		else	{																															// Не включился заряд.
-			if (stat1[iMUK_ZRU]	& bRazryad)		StepAlgortmZar = bInitZarayd;		// Выход из "Петли"
+			if (mode_Razryad)		StepAlgortmZar = bInitZarayd;		// Выход из "Петли"
 			else	{														StepAlgortmZar = bVkl_Zarayd;		// "Петля" - процесс заряда
 				LimsCount = vsCount20;	sCount=0;		bPauza=1;										// Активация паузы 20 сек
 			}
@@ -2241,15 +2255,18 @@ void Razryd_NVAB (void)													/* _Р_А_З_Р_Я_Д___Н_В_А_Б_ */
 	case bInitRazryda:
 		
 		pOtkl_Zapr_Razrayd();																								// Запрет РАЗРЯДА = 0   firstInRaz = 0;
-		stat2[iMUK_ZRU] = 0;
-		stat3[iMUK_ZRU] &= ~(errNoOgrTokRazr|errNoOgrTokZar|errPrevDopustT);
+	//обнаружилось, что обнулять флаги в начале алгоритма некорректно - иногда мы сюда попадаем не в момент перехода из режима в режим
+	//поэтому обнуляем флаги в функции PutParamADC в момент перехода из режима в режим		
+	//	stat2[iMUK_ZRU] = 0;
+	//	stat3[iMUK_ZRU] &= ~(errNoOgrTokRazr|errNoOgrTokZar|errPrevDopustT);
 		StepAlgortmRazr = bWaitOtkl_ZaprRaz;
 		break;
 
 	// .......... Ожидание отключения запрета Разряда ........................................................................
 	case bWaitOtkl_ZaprRaz:		
-		
-			stat3[iMUK_ZRU] &= ~(errNoOgrTokRazr | errPrevDopustT | errNoOtklRazr);
+	//обнаружилось, что обнулять флаги в начале алгоритма некорректно - иногда мы сюда попадаем не в момент перехода из режима в режим
+	//поэтому обнуляем флаги в функции PutParamADC в момент перехода из режима в режим			
+	//		stat3[iMUK_ZRU] &= ~(errNoOgrTokRazr | errPrevDopustT | errNoOtklRazr);
 			StepAlgortmRazr = bTst_I_Razryda;																	// Переход на разряд с подсчётом C и W
 		break;
 		
@@ -2271,13 +2288,15 @@ void Razryd_NVAB (void)													/* _Р_А_З_Р_Я_Д___Н_В_А_Б_ */
 
 		if (!bPauza_R) {																										// Пауза 5 сек
 			
-			if	((Uab <= 72)||(Umin_ak <= 0.3))	{	
+			if	((Uab <= 72)||(Umin_ak <= 0.2))	{	
 				StepAlgortmRazr = bOtkl_Razrayd;
 			}	
 			else	{																														// ((P < 3)||(U <= 76))
 				Calculation();
-				if	(T >= 50)	stat3[iMUK_ZRU] |=  errPrevDopustT;								// "Превышение допустимой температуры АБ" - процесс разряда
-				else					stat3[iMUK_ZRU] &= ~errPrevDopustT;
+				if	(T >= 50)	
+					stat3[iMUK_ZRU] |=  errPrevDopustT;								// "Превышение допустимой температуры АБ" - процесс разряда
+				else					
+					stat3[iMUK_ZRU] &= ~errPrevDopustT;
 				//LimsCount = vsCount20;	 sCount=0;	bPauza=1;
 				StepAlgortmRazr = bInitRazryda;
 			}	
