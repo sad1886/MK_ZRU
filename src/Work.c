@@ -45,7 +45,7 @@ extern float Vals_ZRU[nParams];																// Массив реальных 
 extern float Vals_ZRUold[nParams];														// Массив реальных значений измеренных параметров ЗРУ
 
 float aI_razr, aI_razrOld, aI_zar;
-float aU_zru;																									// Uаб измеренное самим ЗРУ
+float aU_zru, aU_zru_Old;																			// Uаб измеренное самим ЗРУ, а также предыдущее значение, необходимое для расчета W
 union uBytesFloat16 aIrazr, aIzar;														// Для передачи по CAN в БЭ
 
 volatile unsigned char OkDataADC;															// Значение канала АЦП готово

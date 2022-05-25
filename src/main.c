@@ -108,7 +108,7 @@ extern float Vals_ZRU[nParams];																			// Массив реальны
 extern float tVals_ZRU[11];																					// Массив тестовых значений параметров ЗРУ
 
 extern float aI_razr, aI_razrOld, aI_zar;
-extern float aU_zru;	
+extern float aU_zru, aU_zru_Old;;	
 
 extern float cUsm[3][2];																						// (В) Измеренное напряжение средней точкой (смещение) для МУКов
 extern float AUcc[3];																								// (В) Опорное напряжение АЦП МУК1, МУК2, МУК3
@@ -599,6 +599,14 @@ void Calculation (void)
 	C_raz += ((aI_razrOld + aI_razr)/2)*dt;																// Расчёт	C = C + Iab*dt, 		dt=5сек
 	W_raz += ((aI_razrOld + aI_razr)/2)*dt*((Uab_old + Uab)/2);						// Расчёт W = W + Iab*dt*Uab
 	Uab_old = Uab;	aI_razrOld = aI_razr;
+}
+
+//-------------Расчёт C W при потерея обоих линий CAN--------------------------------------------------------------------------------------------------
+void Calculation_noCAN (void)
+{
+	C_raz += ((aI_razrOld + aI_razr)/2)*dt;																// Расчёт	C = C + Iab*dt, 		dt=5сек
+	W_raz += ((aI_razrOld + aI_razr)/2)*dt*((aU_zru_Old + aU_zru)/2);			// Расчёт W = W + Iab*dt*Uab
+	aU_zru_Old = aU_zru;		aI_razrOld = aI_razr;
 }
 
 //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
@@ -2396,7 +2404,7 @@ void Razryd_NVAB_noCAN (void)													/* _Р_А_З_Р_Я_Д___Н_В_А_Б_ �
 		else											 {stat3[iMUK_ZRU] &= ~errNoOgrTokRazr;
 		}	
 		LimsCount_R = dt5; 	 sCount_R=0;	bPauza_R=1;												/*Razr;*/
-		Uab_old = Uab;		aI_razrOld = aI_razr;
+		aU_zru_Old = aU_zru;		aI_razrOld = aI_razr;
 		StepAlgortmRazr = bZRPCheck;																		// Переход на контроль ЗРП с подсчётом C и W
 		break;
 
@@ -2408,7 +2416,7 @@ void Razryd_NVAB_noCAN (void)													/* _Р_А_З_Р_Я_Д___Н_В_А_Б_ �
 				StepAlgortmRazr = bOtkl_Razrayd;
 			}	
 			else	{																														// ((P < 3)||(U <= 76))
-				Calculation();
+				Calculation_noCAN();
 				StepAlgortmRazr = bWaitOtkl_ZaprRaz;														// По сути возвращаемся в начало алгоритма
 			}	
 		}	
