@@ -2846,8 +2846,11 @@ int main(void)
 						if ((stat1[iMUK_ZRU] & bTest) || (stat1[iMUK_ZRU] & bPodzaryad))	{						
 							pOtkl_Test_Zarayd();		pOtkl_Test_Razrayd();								// "Откл_ТЕСТ ЗАР"  "Откл_ТЕСТ РАЗР" 
 							pOtkl_KOMP();																								// pVkl_Zapr_Zarayd ();		Запрет заряда=1			Откл_КОМП
+							stat1[iMUK_ZRU] &= ~bTest;		statTVC = 0;									// перестаем находиться в режиме "тест" 
+							stat1[iMUK_ZRU] &= ~bPodzaryad;															// перестаем находиться в режиме "подзаряд"
 						}
-						stat1[iMUK_ZRU] = bMain;
+						stat1[iMUK_ZRU] &= ~bPC;																			//сбрасываем состояние РС, ведь теперь мы его не знаем
+						stat1[iMUK_ZRU] |= bMain;																			//в любом случае переходим в "основной режим работы"
 						StepAlgortmZar = bInitZarayd;			StepAlgortmRazr = bInitRazryda;
 						mode = CAN_not_working;																				// Сообщение в БЦУ "Ошибка приёма телеметрии АБ"
 					}
