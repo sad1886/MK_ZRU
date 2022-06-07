@@ -249,11 +249,11 @@ volatile unsigned char  StepAlgortm,
 												cntRazr, statTVC, 
 												stapTVC; //эта переменная пока ни на что не влияет
 int tstatTVC;																											// Текущее время от начала этапа 
-//int tvcTimeRS;																										// Время разряда АБ в ТВЦ на разрядной нагрузке (РС), какая-то ненужная переменная
+//int tvcTimeRS;																									// Время разряда АБ в ТВЦ на разрядной нагрузке (РС), какая-то ненужная переменная
 
-float dt = (float)dt5/(60*60);																		// 5 сек
-
-float dt_razr = (float)dtRazr/(60*60);														// 20 сек
+float calc_dt = (float)dt5/(60*60); 															//дельта времени, необходимая для расчета W и C, может меняться в зависимости от паузы между измерениями, по умолчанию соответствует дельте в 5 секунд
+float calc_dt5 = (float)dt5/(60*60);															// 5 сек, типовое значение дельты времени 
+float calc_dt20 = (float)dt20/(60*60);														// 20 сек, редкое значение дельты времени
 
 
 //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
@@ -597,16 +597,16 @@ int hCount (void)
 //-------------Расчёт C W--------------------------------------------------------------------------------------------------
 void Calculation (void)
 {
-	C_raz += ((aI_razrOld + aI_razr)/2)*dt;																// Расчёт	C = C + Iab*dt, 		dt=5сек
-	W_raz += ((aI_razrOld + aI_razr)/2)*dt*((Uab_old + Uab)/2);						// Расчёт W = W + Iab*dt*Uab
+	C_raz += ((aI_razrOld + aI_razr)/2)*calc_dt;																// Расчёт	C = C + Iab*dt, 		dt=5сек
+	W_raz += ((aI_razrOld + aI_razr)/2)*calc_dt*((Uab_old + Uab)/2);						// Расчёт W = W + Iab*dt*Uab
 	Uab_old = Uab;	aI_razrOld = aI_razr;
 }
 
 //-------------Расчёт C W при потерея обоих линий CAN--------------------------------------------------------------------------------------------------
 void Calculation_noCAN (void)
 {
-	C_raz += ((aI_razrOld + aI_razr)/2)*dt;																// Расчёт	C = C + Iab*dt, 		dt=5сек
-	W_raz += ((aI_razrOld + aI_razr)/2)*dt*((aU_zru_Old + aU_zru)/2);			// Расчёт W = W + Iab*dt*Uab
+	C_raz += ((aI_razrOld + aI_razr)/2)*calc_dt;																// Расчёт	C = C + Iab*dt, 		dt=5сек
+	W_raz += ((aI_razrOld + aI_razr)/2)*calc_dt*((aU_zru_Old + aU_zru)/2);			// Расчёт W = W + Iab*dt*Uab
 	aU_zru_Old = aU_zru;		aI_razrOld = aI_razr;
 }
 
@@ -622,7 +622,7 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 	case bInit_TVC:
 		stat2[iMUK_ZRU] = 0;
 		stat3[iMUK_ZRU] &= ~(errNoOgrTokRazr|errNoOgrTokZar|errPrevDopustT);
-		cntRazr = 1;	statTVC = 0;	stapTVC = 0;
+		statTVC = 0;	stapTVC = 0;
 
 	// лист 35
 	// ========== Отключение КОМП ...........................................................................................2
@@ -733,6 +733,8 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 			//if	(aI_zar < 50)		stat2[iMUK_ZRU] |= errNoOtklZar;						// Отладочная заглушка, Собщение "Не отключился Заряд АБ"=1
 			else								stat2[iMUK_ZRU] &= ~errNoOtklZar;							// Собщение "Не отключился Заряд АБ"=0
 			statTVC = 2;			tstatTVC =0;																		// Этап проведения ТВЦ
+			cntRazr = 1; 																											// Сейчас будет первый разряд
+			C_raz = 0;		W_raz = 0;																					// На всякий случай сбрасываем рассчетные параметры
 			StepAlgortm = bVkl_Test_Razr;																			// 
 		}
 		break;
@@ -743,35 +745,48 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 
 		pVkl_Test_Razrayd();
 		pOtkl_Zapr_Razrayd();
-		LimsCount = vsCount20;	sCount=0;		bPauza=1;												// Активация паузы 20сек
-		StepAlgortm = bWaitVkl_Test_Razr;									
-//		StepAlgortm = bTst_T_Razryda;									
+		time_Razr = 0; 																										// Начала заново процесс разряда
+		LimsCount = vsCount5;	sCount=0;		bPauza=1;												// Активация паузы 5сек
+		// Так как начался разряд, нужно уже начать Calculation, поэтому 
+		calc_dt = calc_dt5; //дельта времени соответствует 20 секундам	
+		Uab_old = Uab;	aI_razrOld = aI_razr; //фиксируем текущие U и I
+		//
+		StepAlgortm = bWaitVkl_Test_Razr;																
 		break;
 	
 	// .......... Ожидание включения разряда ................................................................................11
 	case bWaitVkl_Test_Razr:
 		
 		if (!bPauza) {
-			if	(aI_razr <= aIporog)	
-			//if	(40 <= aIkomp)																							// Отладочная заглушка
+			Calculation();																										// После разрешения разряда и паузы нужно посчитать
+			
+			if (time_Razr >= 20) //если прошло достаточно времени
 			{
-				stat2[iMUK_ZRU] |= errNoVklRazr;																// Собщение "Не включился разряд"=1
-				if (cntRazr==1) StepAlgortm = bVkl_Test_Razr;
-				else	{					StepAlgortm = bTst_T_Razryda;
-				}	
+				if	(aI_razr <= aIporog)	
+				//if	(40 <= aIkomp)																							// Отладочная заглушка
+				{
+					stat2[iMUK_ZRU] |= errNoVklRazr;																// Собщение "Не включился разряд"=1
+					if (cntRazr==1) StepAlgortm = bVkl_Test_Razr;										// При "первом" разряде зацикливаемся
+					else	{					StepAlgortm = bTst_T_Razryda;										// Иначе идем дальше
+					}	
+				}
+				else	{						
+					StepAlgortm = bTst_T_Razryda;
+					stat2[iMUK_ZRU] &= ~errNoVklRazr;																// Собщение "Не включился разряд"=0
+				}		
+
+				LimsCount = dt5; 	sCount = 0;		bPauza = 1;												// vsCount5;Активация паузы 5 сек для расчёта W C
+				calc_dt = calc_dt5; 																							//дельта времени соответствует 5 секундам			
+				switch (cntRazr)	{																								// Счётчик "Разрядов" в ТВЦ
+				case 1:	case 3:			bFlag = 1;	break;														// 
+				case 2:	case 4:			bFlag = 0;	break;														// 
+				}					
 			}
-			else	{						StepAlgortm = bTst_T_Razryda;
-				stat2[iMUK_ZRU] &= ~errNoVklRazr;																// Собщение "Не включился разряд"=0
-			}	
-			if ((StepAlgortm == bTst_T_Razryda) && (cntRazr==1))	{						//	||(cntRazr==3)
-				C_raz = 0;		W_raz = 0;			time_Razr = 0;	
+			else  //если же ток еще рано измерять
+			{
+				LimsCount = vsCount5;	sCount=0;		bPauza=1;												// Активация паузы 5сек
+				StepAlgortm = bWaitVkl_Test_Razr; 																//зацикливаемся на Calculation и ожидание time_Razr >= 20
 			}
-			Uab_old = Uab;	aI_razrOld = aI_razr;
-			LimsCount = dt5; 	sCount = 0;		bPauza = 1;												// vsCount5;Активация паузы 5 сек для расчёта W C
-			switch (cntRazr)	{																								// Счётчик "Разрядов" в ТВЦ
-			case 1:	case 3:			bFlag = 1;	break;														// 
-			case 2:	case 4:			bFlag = 0;	break;														// 
-			}	
 		}			
 		break;
 	 
@@ -799,7 +814,7 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 			}			 
 			else	{																														// ((P < 3)||(U <= 76))
 				Calculation();
-				LimsCount = dt5;	sCount = 0;		bPauza = 1;											//vsCount20 Активация паузы 5 сек
+				LimsCount = dt5;	sCount = 0;		bPauza = 1;											// Активация паузы 5 сек
 				StepAlgortm = bTst_T_Razryda;
 			}	
 		}	
@@ -854,7 +869,7 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 					if (cntRazr==2) { StepAlgortm = bVkl_RS; bPauza = 0; }					// если мы находимся в начале третьего этапа
 					else 
 					{
-						if (cntRazr==4) StepAlgortm = bVkl_Tst_Zarayd9;									// Откл КОМП bVkl_Tst_Zarayd9
+						if (cntRazr==4) { StepAlgortm = bVkl_Tst_Zarayd9;	tstatTVC = 0; }	// идем в начало 9-ого этапа, а время tstatTVC сбрасываем тут, чтобы при восстановлении этапа и переходе на шаг bVkl_Tst_Zarayd9 с оно не обнулялось
 						else						StepAlgortm = bRepeatRazr;
 					}
 				}
@@ -1042,6 +1057,26 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 			StepAlgortm = bVkl_Tst_Zarayd_On2;
 		}	
 		break;
+
+	// ========== Вспомогательные шаги для восстановления 6-го этапа тестирования .......................................................................
+	//этот вспомогательный шаг выполняет команды, которые нужны, чтобы начать шестой этап, при восстановлении надо подать их заново
+	case bTest_Vosst_et6_command:			
+		if (!bPauza) {
+			pVkl_Test_Zarayd();		pOtkl_Zapr_Zarayd(); 			
+			LimsCount = vsCount20;	sCount = 0;		bPauza = 1;					// Активация паузы 20сек
+			StepAlgortm = bTest_Vosst_et6_checkI;									
+		}	
+		break;
+		
+	//этот вспомогательный шаг контролирует ток после подачи команд
+	case bTest_Vosst_et6_checkI:			
+		if (!bPauza) {
+			stat2[iMUK_ZRU] &= ~errNoVklCompZar;															// Сообщение "Не включился КОМП заряд"=0
+			if (aI_zar <= aIporog)		stat2[iMUK_ZRU] |= errNoOtklCompZar;			// Сообщение "Не отключился КОМП заряд"=1			
+			stat4[iMUK_ZRU] &= ~bready1; //обнуляем переменную синхронизации
+			StepAlgortm = bVkl_Tst_Zarayd_On2; //все вспомогательные шаги выполнены, можем возвращаться к штатному алгоритму					
+		}	
+		break;
 		
 	// ========== Заряжаем батарею максимальным током .......................................................................24
 	case bVkl_Tst_Zarayd_On2:			
@@ -1064,6 +1099,18 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 				LimsCount = vmCount1;		sCount=0;	bPauza=1;											// Для отладки vmCount1 = 2 сек	Сброс счётчика, включене паузы
 				StepAlgortm = bVkl_Tst_Zarayd_On2;									
 			}
+		}	
+		break;
+	
+	// ========== Вспомогательные шаги для восстановления 7-го этапа тестирования .......................................................................
+	//этот вспомогательный шаг выполняет команды, которые нужны, чтобы начать седьмой этап, при восстановлении надо подать их заново
+	case bTest_Vosst_et7_command:			
+		if (!bPauza) {		
+			pVkl_KOMP();	
+			stat2[iMUK_ZRU] &= ~errNoOtklCompZar;															// Сообщение "Не отключился КОМП заряд"=0			
+			pVkl_Test_Zarayd();		pOtkl_Zapr_Zarayd(); 
+			LimsCount = vsCount20;	sCount = 0;		bPauza = 1;					// Активация паузы 20сек
+			StepAlgortm = bWaitVklKomp2;									
 		}	
 		break;
 		
@@ -1143,7 +1190,7 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 			stat4[iMUK_ZRU] &= ~bready2;
 			// ............................................................... РџРµСЂРµС…РѕРґ РЅР° "Р РђР—Р РЇР”" .............
 			C_raz = 0;		W_raz = 0;			time_Razr = 0;	
-			cntRazr++;																												// cntRazr = 3
+			cntRazr = 3;																												// cntRazr = 3
 			StepAlgortm = bVkl_Test_Razr;																			// РџРµСЂРµС…РѕРґ РЅР° "Р РђР—Р РЇР”"	Р»РёСЃС‚ 35
 		}
 		break;
@@ -1152,7 +1199,7 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 	// ========== Принудительный заряд до рабочей уставки P2 ................................................................28
 	case bVkl_Tst_Zarayd9:
 		
-		statTVC = 9;					tstatTVC =0;																	// Этап проведения ТВЦ
+		statTVC = 9;																						// Этап проведения ТВЦ
 		iUst = 1;																														// N=2
 		pOtkl_KOMP();
 		pVkl_Test_Zarayd();																									// 
@@ -1208,7 +1255,7 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 				StepAlgortm = bViborUst;																					// 
 			}
 			else	{
-				StepAlgortm = bVkl_Tst_Zar_On9;									
+				StepAlgortm = bWaitOtkl_Tst_Zar9;									
 				LimsCount = vsCount5;	sCount = 0;		bPauza = 1;										// Активация паузы 5сек
 			}	
 		}
@@ -1262,13 +1309,12 @@ void Podzarayd (void)														/*	_Подзаряд__Н_В_А_Б_ */
 		stat3[iMUK_ZRU] &= ~(errNoOgrTokRazr|errNoOgrTokZar|errPrevDopustT);
 		//curW_zar = 0;																												// Расчёт W = W + Iab*dt*Uab
 		StepNext = bStartPodzaryd;
-		//break;
 
 	// .......... Включение запрета Заряда ..................................................................................
 	case bVkl_ZaprZarayd:
 		
 		pVkl_Zapr_Zarayd ();																								// Запрет заряда=1
-		LimsCount = vsCount5;	sCount=0;		bPauza=1;													// Активация паузы 5 сек
+		LimsCount = vsCount20;	sCount=0;		bPauza=1;													// Активация паузы 20 сек
 		StepAlgortm = bWaitVkl_ZaprZara;																		// След шаг алгоритма Ожидание включения запрета заряда
 		break;
 
@@ -1296,7 +1342,6 @@ void Podzarayd (void)														/*	_Подзаряд__Н_В_А_Б_ */
 		if (T < TnuzAB)	{
 			stat3[iMUK_ZRU] &= ~errPrevDopustT;																// "Превышение допустимой температуры при заряде" = 0
 
-			dt = (float)dt5/(60*60);																					// 5 сек
 			StepNext = bTst_Tnuzab2;
 			StepAlgortm = bOtkl_ZaprZarayd;																		// Переход на отключение запрета заряда
 		}
@@ -1309,8 +1354,6 @@ void Podzarayd (void)														/*	_Подзаряд__Н_В_А_Б_ */
 	case bOtkl_ZaprZarayd:						
 		
 		pOtkl_Zapr_Zarayd();																								// ОТКЛ ЗАПР ЗАРЯДА
-		// удаляем сообщения об ошибках из мест, где им не место		
-		//stat2[iMUK_ZRU] &= ~errNoVklZar;																		// Собщение "Не включился заряд АБ"=0
 		LimsCount = vsCount5;	sCount=0;		bPauza=1;													// Активация паузы 5 сек
 		StepAlgortm = bWaitOtkl_ZaprZar;
 		break;
@@ -1319,8 +1362,6 @@ void Podzarayd (void)														/*	_Подзаряд__Н_В_А_Б_ */
 	case bWaitOtkl_ZaprZar:		
 
 		if (!bPauza) {
-// удаляем сообщения об ошибках из мест, где им не место					
-//			if	(aI_zar < aIkomp)	stat2[iMUK_ZRU] |= errNoVklZar;							// Собщение "Не включился Заряд АБ"=1
 			StepAlgortm = StepNext;																						// След шаг алгоритма
 		}
 		break;
@@ -1336,7 +1377,6 @@ void Podzarayd (void)														/*	_Подзаряд__Н_В_А_Б_ */
 			else	{
 				stat3[iMUK_ZRU] &= ~errPrevDopustT;															// "Превышение допустимой температуры при заряде" = 0
 				LimsCount = dt5;	sCount=0;		bPauza=1;													// Активация паузы 5сек
-				Uab_old = Uab;		W_podzar = 0;
 				StepAlgortm = bZaryd_Pnuz;																			// Переход на заряд
 			}
 		//}
@@ -1853,21 +1893,15 @@ void MakePack8(void)	// Получение данных восстановлен
 		case	2:	StepAlgortm = bVkl_Test_Razr;		cntRazr = 1;
 							break;
 		case 	3:	StepAlgortm = bWait_2;	cntRazr = 2;	sCount_2h = tstatTVC;			
-							//stat3[iMUK_ZRU] |= bready;
 							break;
 		case 	4:	StepAlgortm = bWait_2;	cntRazr = 2;	sCount_2h = vhCount2+1;			
-							stat3[iMUK_ZRU] |= bready;
-							LimsCount = vsCount5;	sCount = 0;		bPauza = 1;					// Активация паузы 20сек
+							stat3[iMUK_ZRU] |= bready;							
 							break;
-		case	5:	StepAlgortm = bVklKomp;		cntRazr = 2;			
+		case	5:	StepAlgortm = bVklKomp;	cntRazr = 2;			
 							break;
-		case	6:	StepAlgortm = bVkl_Tst_Zarayd_On2;		cntRazr = 2;	
-							pVkl_Test_Zarayd();		pOtkl_Zapr_Zarayd();	
-							LimsCount = vsCount20;	sCount = 0;		bPauza = 1;					// Активация паузы 20сек
+		case	6:	StepAlgortm = bTest_Vosst_et6_command;	cntRazr = 2;	//идем на вспомогательный шаг, так как нужно сначала подать команды
 							break;
-		case	7:	StepAlgortm = bVklKomp2;	cntRazr = 2;
-							pVkl_KOMP();
-							pVkl_Test_Zarayd();		pOtkl_Zapr_Zarayd();		
+		case	7:	StepAlgortm = bTest_Vosst_et7_command;	cntRazr = 2;	//идем на вспомогательный шаг, так как нужно сначала подать команды		
 							break;
 		case	8:	StepAlgortm = bVkl_Test_Razr;		cntRazr = 3;
 							C_raz = 0;		W_raz = 0;			time_Razr = 0;	
@@ -1879,6 +1913,7 @@ void MakePack8(void)	// Получение данных восстановлен
 		stat1[iMUK_ZRU] &= ~bMain;
 		stat1[iMUK_ZRU] |= bTest;
 
+		//Обязательно нужно следить, чтобы не было одновременно двух пауз bPauza_TVC=1 и bPauza = 1, иначе в функции счета счетчик будет увеличиваться два раза
 		LimsCount = vsCount20;	sCount=0;		bPauza_TVC=1;										// Активация паузы 20 сек
 		//stat3[iMUK_ZRU] = 0;
 	}
@@ -2269,7 +2304,6 @@ void Razryd_NVAB (void)													/* _Р_А_З_Р_Я_Д___Н_В_А_Б_ */
 
 	// .......... Инициализация разряда .....................................................................................
 	case bInitRazryda:
-		
 		pOtkl_Zapr_Razrayd();
 		stat2[iMUK_ZRU] &= ~errNoOtklRazr; 																	//Не отключился разряд АБ = 0
 	// Запрет РАЗРЯДА = 0   firstInRaz = 0;
@@ -2297,6 +2331,7 @@ void Razryd_NVAB (void)													/* _Р_А_З_Р_Я_Д___Н_В_А_Б_ */
 		else											 {stat3[iMUK_ZRU] &= ~errNoOgrTokRazr;
 		}	
 		LimsCount_R = dt5; 	 sCount_R=0;	bPauza_R=1;												/*Razr;*/
+		calc_dt = calc_dt5; //дельта времени соответствует 5 секундам
 		Uab_old = Uab;		aI_razrOld = aI_razr;
 		StepAlgortmRazr = bTst_U_Razryda;																		// Переход на разряд с подсчётом C и W
 		break;
@@ -2417,6 +2452,7 @@ void Razryd_NVAB_noCAN (void)													/* _Р_А_З_Р_Я_Д___Н_В_А_Б_ �
 		else											 {stat3[iMUK_ZRU] &= ~errNoOgrTokRazr;
 		}	
 		LimsCount_R = dt5; 	 sCount_R=0;	bPauza_R=1;												/*Razr;*/
+		calc_dt = calc_dt5; //дельта времени соответствует 5 секундам		
 		aU_zru_Old = aU_zru;		aI_razrOld = aI_razr;
 		StepAlgortmRazr = bZRPCheck;																		// Переход на контроль ЗРП с подсчётом C и W
 		break;
@@ -2477,38 +2513,40 @@ void OneSecAdd (void)													/* Добавить секунду */
 
 	//......................................................................
 	if (secUart1 < 1)	{secUart1++;	NoWrkUart1=0;}	
-	else 	{	NoWrkUart1=1;
-		RS_RECEIVE1;  ind_pack1=0;																					//UART1_Init(); Счётчик 2-х секунд Uart1, флаг достижения двух секунд
+	else 	{	NoWrkUart1 = 1;
+		RS_RECEIVE1;  ind_pack1 = 0;																					//UART1_Init(); Счётчик 2-х секунд Uart1, флаг достижения двух секунд
 	}
 	if (secUart2 < 1)	{	secUart2++;	NoWrkUart1=0;	}
-	else 	{	NoWrkUart1=1;
-		RS_RECEIVE2;	ind_pack2=0;			
+	else 	{	NoWrkUart1 = 1;
+		RS_RECEIVE2;	ind_pack2 = 0;			
 	}
 	
 	//......................................................................
 	for (i=0;i<6;i++)	{																										// Установка/сброс флагов неработоспособности CAN узлов
-		if (cntSec_noCAN[i] > 4)	{cntSec_noCAN[i]=0;	bNoWrkCAN |= 1<<i; }	// 0x3f;
+		if (cntSec_noCAN[i] > 4)	{cntSec_noCAN[i] = 0;	bNoWrkCAN |= 1<<i; }	// 0x3f;
 		else											{cntSec_noCAN[i]++;	}											//bNoWrkCAN &= ~(1<<i);
 	}
 
 	//......................................................................
 	sCount_2h++;
 	
+	//!!!нужно внимательно следить, чтобы bPauza_TVC и bPauza не были запущены одновременно, иначе sCount будет увеличиваться два раза
+	//!!!да и LimsCount у них тоже общий. Либо нужно делать два независимых счетчика и два независимых порога для счетчиков
 	//......................................................................
 	if (bPauza_TVC)	{	sCount++;
-		if (sCount >= LimsCount)	{ sCount=0;	bPauza_TVC=0;}	}							// Обслуживание паузы ТВЦ
+		if (sCount >= LimsCount)	{ sCount = 0;	bPauza_TVC = 0;}	}							// Обслуживание паузы ТВЦ
 
 	//......................................................................
 	if (bPauza)	{	sCount++;
-		if (sCount >= LimsCount)	{ sCount=0;	bPauza=0;}	}									// Обслуживание универсальной паузы
+		if (sCount >= LimsCount)	{ sCount = 0;	bPauza = 0;}	}									// Обслуживание универсальной паузы
 
 	//......................................................................
 	if (bPauza_R)	{	sCount_R++;
-		if (sCount_R >= LimsCount_R)	{ sCount_R=0;	bPauza_R=0;}	}					// Обслуживание паузы РАЗРЯДА
+		if (sCount_R >= LimsCount_R)	{ sCount_R = 0;	bPauza_R = 0;}	}					// Обслуживание паузы РАЗРЯДА
 	
 	//......................................................................
 	mCountSecMain++;																											// Счётчик 1 мин
-	if (mCountSecMain==59)	{	mCountSecMain=0;	mCount5Main++;						// Счётчик 5 мин в main
+	if (mCountSecMain == 59)	{	mCountSecMain = 0;	mCount5Main++;						// Счётчик 5 мин в main
 			time_Razr++;
 	}
 	//......................................................................
@@ -2516,9 +2554,9 @@ void OneSecAdd (void)													/* Добавить секунду */
 //		if (sCount5 >= 5)	{ sCount5=0;	bPauza5=0;}	}												// Обслуживание паузы 5 сек
 	//......................................................................
 	sTime.sec++;
-  if (sTime.sec == 59)	{		sTime.sec=0;																// Прошло 60 сек
+  if (sTime.sec == 59)	{		sTime.sec = 0;																// Прошло 60 сек
 		if (sTime.min < 59)		{	sTime.min++;	}															// mCount5Main++;}
-		else	{									sTime.min=0;	
+		else	{									sTime.min = 0;	
 			if (sTime.hour < 23)	{	sTime.hour++;	}
 			else	{									sTime.hour = 0;		NewDay=1;								// Смена суток
 				Date_Update();     																							// Increment the date
@@ -2808,6 +2846,7 @@ int main(void)
 
 	mode = Init_Run;																											// Начальрый режим
 	bPauza5 = 1;	bOneSec = 0;
+	calc_dt = calc_dt5; 																									//по умолчанию дельта времени для расчета W и С будет соответствовать 5 секундам
 	
 	MakePack2_5_8_10();
 	MakePack3();	MakePack4();
@@ -2944,16 +2983,20 @@ int main(void)
 				}
 				break;
 			
-			case Otkl_TEST:																										// 
-//				pVkl_Zapr_Zarayd();																							// «ЗАПРЕТ ЗАРЯД»  = 1
-//				pVkl_Zapr_Razrayd();																						// «ЗАПРЕТ РАЗРЯД» = 1
-//				pOtkl_Test_Zarayd();																						// "Откл_ТЕСТ ЗАР" 
-//				pOtkl_Test_Razrayd();																						// "Откл_ТЕСТ РАЗР" 
+			case Otkl_TEST:																										
+				// По принятии команды Откл.Тест вызываем эти функции
+				pVkl_Zapr_Zarayd();																							// «ЗАПРЕТ ЗАРЯД»  = 1
+				pVkl_Zapr_Razrayd();																						// «ЗАПРЕТ РАЗРЯД» = 1
+				pOtkl_Test_Zarayd();																						// "Откл_ТЕСТ ЗАР" 
+				pOtkl_Test_Razrayd();																						// "Откл_ТЕСТ РАЗР" 
+			
+				//но мы должны подождать аппаратуру, до тех же пор мы просто ждем, у нас mode = Otkl_TEST
+				LimsCount = vsCount20;	sCount=0;		bPauza_TVC=1;										// Активация паузы 20 сек
 
-//				if (!bPauza_TVC) 	{
-					stat1[iMUK_ZRU] &= ~bTest;		statTVC = 0;
-					mode = START;
-//				}
+				if (!bPauza_TVC) 	{ //Если прошло 20 секунд
+					stat1[iMUK_ZRU] &= ~bTest;		statTVC = 0;  //мы закончили тестирование
+					mode = START; //Начинаем обычный режим работы
+				}
 				break;
 
 			case initPodzarayd:																								// Запуск подпрограммы Подзаряд АБ
