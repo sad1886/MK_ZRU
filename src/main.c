@@ -238,9 +238,10 @@ unsigned char	secTimeOutCmd;
 
 unsigned char	secCAN_err;
 
+unsigned char EndTVC = 0; 																				// Флаг того, что начался процесс окончания ТВЦ (по команде или по окончанию алгоритма)
 unsigned char bPauza, bPauza_R, bPauza_TVC,
 							bCount_2h;																					// Флаг общей паузы, флаг - ждать 2 часа в ТВЦ
-int sCount, sCount_R, sCount_2h;																	// Счётчик секунд общей паузы, Счётчик секунд для 2-х часов ожидания в ТВЦ
+int sCount, sCount_R, sCount_2h;																	// Счётчик секунд общей паузы, Счётчик секунд для 2-х часов ожидания в ТВЦ (sCount_2h стала вспомогательной и используется в разных местах) 
 int LimsCount, LimsCount_R;																				// Предельное (конечное) значение для счётчика секунд общей паузы
 
 //........... T V C ...........
@@ -746,6 +747,7 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 		pVkl_Test_Razrayd();
 		pOtkl_Zapr_Razrayd();
 		time_Razr = 0; 																										// Начала заново процесс разряда
+		sCount_2h = 0; 																										//	подготавливаем переменную, с помощью которой будем ждать 20 секунд, прежде чем контролировать ток, переменная увеличивается раз в секунду
 		LimsCount = vsCount5;	sCount=0;		bPauza=1;												// Активация паузы 5сек
 		// Так как начался разряд, нужно уже начать Calculation, поэтому 
 		calc_dt = calc_dt5; //дельта времени соответствует 20 секундам	
@@ -760,7 +762,7 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 		if (!bPauza) {
 			Calculation();																										// После разрешения разряда и паузы нужно посчитать
 			
-			if (time_Razr >= 20) //если прошло достаточно времени
+			if (sCount_2h >= 20) //если прошло достаточно времени
 			{
 				if	(aI_razr <= aIporog)	
 				//if	(40 <= aIkomp)																							// Отладочная заглушка
@@ -1274,21 +1276,20 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 
 	// ========== Завершение алгоритма ......................................................................................33
 	case bInitEnd_Alg_TVC:		
-		pVkl_Zapr_Zarayd();																										// «ЗАПРЕТ ЗАРЯД»  = 1
-		pVkl_Zapr_Razrayd();																									// «ЗАПРЕТ РАЗРЯД» = 1
-		pOtkl_Test_Zarayd();																									// "Откл_ТЕСТ ЗАР" 
-		pOtkl_Test_Razrayd();																									// "Откл_ТЕСТ РАЗР" 
-
-		LimsCount = vsCount20;	sCount=0;		bPauza_TVC=1;											// Активация паузы 20 сек
 		StepAlgortm = bEnd_Alg_TVC;
+		// Эти функции мы будем выполнять в функции main в режиме mode = Otkl_TEST	
+		//		pVkl_Zapr_Zarayd();																										// «ЗАПРЕТ ЗАРЯД»  = 1
+		//		pVkl_Zapr_Razrayd();																									// «ЗАПРЕТ РАЗРЯД» = 1
+		//		pOtkl_Test_Zarayd();																									// "Откл_ТЕСТ ЗАР" 
+		//		pOtkl_Test_Razrayd();																									// "Откл_ТЕСТ РАЗР" 	
+		// 		LimsCount = vsCount20;	sCount=0;		bPauza_TVC=1;											// Активация паузы 20 сек
 	
 	// .......... Конец алгоритма ...........................................................................................
 	case bEnd_Alg_TVC:				
 		
-		if (!bPauza_TVC) 	{
-			//stat1[iMUK_ZRU] &= ~bTest;		statTVC = 0;
+		//if (!bPauza_TVC) 	{
 			mode = Otkl_TEST;
-		}
+		//}
 		break;
 	
 	} //end of switch (StatusZarRazr)
@@ -2597,6 +2598,8 @@ void Var_init()
 	
 	bmode_mod = 0;
 
+	EndTVC = 0; 																														// Флаг начала процесса окончания ТВЦ
+
 //	StepAlgortmZar = bInitZarayd;																					// StepAlgortmZar = bInitZarayd
 //	StepAlgortmRazr = bInitRazryda;
 }	
@@ -2847,6 +2850,7 @@ int main(void)
 	bPauza5 = 1;	bOneSec = 0;
 	calc_dt = calc_dt5; 																									//по умолчанию дельта времени для расчета W и С будет соответствовать 5 секундам
 	
+	
 	MakePack2_5_8_10();
 	MakePack3();	MakePack4();
 	MakePack1();	MakePack6();
@@ -2982,20 +2986,29 @@ int main(void)
 				}
 				break;
 			
-			case Otkl_TEST:																										
-				// По принятии команды Откл.Тест вызываем эти функции
-				pVkl_Zapr_Zarayd();																							// «ЗАПРЕТ ЗАРЯД»  = 1
-				pVkl_Zapr_Razrayd();																						// «ЗАПРЕТ РАЗРЯД» = 1
-				pOtkl_Test_Zarayd();																						// "Откл_ТЕСТ ЗАР" 
-				pOtkl_Test_Razrayd();																						// "Откл_ТЕСТ РАЗР" 
-			
-				//но мы должны подождать аппаратуру, до тех же пор мы просто ждем, у нас mode = Otkl_TEST
-				LimsCount = vsCount20;	sCount=0;		bPauza_TVC=1;										// Активация паузы 20 сек
-
-				if (!bPauza_TVC) 	{ //Если прошло 20 секунд
-					stat1[iMUK_ZRU] &= ~bTest;		statTVC = 0;  //мы закончили тестирование
-					mode = START; //Начинаем обычный режим работы
+			case Otkl_TEST:	
+				if(EndTVC) //если процесс окончания ТВЦ уже был запущен
+				{					
+					if (!bPauza_TVC) 	{ // то контролируем окончание задержки, прежде чем перейти в основной режим
+						stat1[iMUK_ZRU] &= ~bTest;		statTVC = 0;  //мы закончили тестирование
+						mode = START; //Начинаем обычный режим работы
+						
+						EndTVC = 0; // Процесс окончания ТВЦ закончен, мы переходим в режим mode = START;, можно сбросить этот флаг
+					}							
 				}
+				else //нужно запустить процесс окончания ТВЦ: выполнить команды и установить паузу ожидания исполнения этих команд
+				{
+					LimsCount = vsCount20;	sCount=0;		bPauza_TVC=1;								// Подготовавливаем паузу 20 секунд			
+					
+					// По принятии команды Откл.Тест или при выходе из алгоритма тестирования вызываем эти функции
+					pVkl_Zapr_Zarayd();																							// «ЗАПРЕТ ЗАРЯД»  = 1
+					pVkl_Zapr_Razrayd();																						// «ЗАПРЕТ РАЗРЯД» = 1
+					pOtkl_Test_Zarayd();																						// "Откл_ТЕСТ ЗАР" 
+					pOtkl_Test_Razrayd();																						// "Откл_ТЕСТ РАЗР" 		
+
+					EndTVC = 1; //Устанавливаем флаг того, что процесс окончания ТВЦ запущен
+				}
+	
 				break;
 
 			case initPodzarayd:																								// Запуск подпрограммы Подзаряд АБ
