@@ -1424,13 +1424,12 @@ void Podzarayd (void)														/*	_Подзаряд__Н_В_А_Б_ */
 	case bWaitVklKomp:		
 
 		if (!bPauza) {
-			if	(aI_zar > aIporog)	stat2[iMUK_ZRU] |= errNoVklCompZar;					// Собщение "Не включился КОМП Заряд АБ"=1
+			if	(aI_zar > aIkomp)	stat2[iMUK_ZRU] |= errNoVklCompZar;					// Собщение "Не включился КОМП Заряд АБ"=1
 			StepAlgortm = bVklKomp;																						// След шаг алгоритма
 		}
 		else	{
 			stat2[iMUK_ZRU] &= ~errNoVklCompZar;
 			LimsCount = dt5;	sCount=0;		bPauza=1;														// Активация паузы 5сек
-			Uab_old = Uab;
 			StepAlgortm = bZarydComp;																					// След шаг алгоритма
 		}
 		break;
