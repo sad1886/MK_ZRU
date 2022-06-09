@@ -72,8 +72,10 @@ volatile float	curW_zar,																						// Текущ заряд НВАБ	
 
 unsigned char stat1[3]={0,0,0},
 							stat2[3]={0,0,0},
-							stat3[3]={0,0,0};
-unsigned char stat4[3];							
+							stat3[3]={0,0,0},
+							stat4[3]={0,0,0};		
+unsigned char sync_AND_2 = 0; //служебная переменная для хранения результатов синхронизации, логические И двух других соседей (нужно оба других) 
+unsigned char sync_OR_1 = 0; //служебная переменная для хранения результатов синхронизации, логические ИЛИ двух других соседей (достаточно хотя бы одного другого)
 
 volatile float	P = 40,																							// [0] среднее значение ДД 
 								dP,																									// [1] максимальное отклонение ДД
@@ -621,8 +623,10 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 	{
 	// .......... Инициализация ТВЦ .........................................................................................1
 	case bInit_TVC:
+		//сброс всех аварийных сообщений
 		stat2[iMUK_ZRU] = 0;
 		stat3[iMUK_ZRU] &= ~(errNoOgrTokRazr|errNoOgrTokZar|errPrevDopustT);
+		//------------------------------
 		statTVC = 0;	stapTVC = 0;
 
 	// лист 35
@@ -835,38 +839,96 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 					StepAlgortm = bInitEnd_Alg_TVC;																// ******** Окончание ТВЦ
 			}
 			else	{
-				stat2[iMUK_ZRU] &= ~errNoOtklRazr;
-				stat3[iMUK_ZRU] &= ~bready;
+				stat2[iMUK_ZRU] &= ~errNoOtklRazr;	
+				
+				//сброс флагов синхронизации в зависимости от номера разряда
+				switch (cntRazr)																								
+				{
+					case 1:	
+						stat4[iMUK_ZRU] &= ~bready3;	//cntRazr = 1, этап 2
+						break;					
+					case 2:	
+						stat4[iMUK_ZRU] &= ~bready4;	//cntRazr = 2, этап 2
+						break;	
+					case 3:
+						stat4[iMUK_ZRU] &= ~bready5;	//cntRazr = 3, этап 8
+						break;					
+					case 4:	
+						stat4[iMUK_ZRU] &= ~bready6;	//cntRazr = 4, этап 8
+						break;					
+				}	
+				
 				LimsCount = vsCount5;	sCount = 0;		bPauza = 1;									// Активация паузы 5сек
-					switch (cntRazr)																								// Обработчик состояний алгоритма заряда
-					{
-						case 2:	statTVC = 3;	tstatTVC = 0;		sCount_2h=0;							// Этап проведения ТВЦ			
-										// Следующий этап выбирается исходя из необходимости: либо происходят наземные испытания, либо полет
-										StepAlgortm = bWait_2; //Наземные испытания, ждем 2 часа 
-										//StepAlgortm = bTst_T_NVAB; // Полет, идем на проверку температуры
-										break;
-						case 1:	
-						case 3:	
-						case 4:	StepAlgortm = bTst_T_NVAB;
-										break;
-					}	
+				switch (cntRazr)																								// Обработчик состояний алгоритма заряда
+				{
+					case 2:	statTVC = 3;	tstatTVC = 0;		sCount_2h=0;							// Этап проведения ТВЦ						
+									// Следующий этап выбирается исходя из необходимости: либо происходят наземные испытания, либо полет
+									#ifdef HOURS2 
+										StepAlgortm = bWait_2; //Наземные испытания, ждем 2 часа														
+									#else					
+										StepAlgortm = bTst_T_NVAB; // Полет, идем на проверку температуры
+									#endif					
+									break;
+					case 1:	
+					case 3:	
+					case 4:	StepAlgortm = bTst_T_NVAB;
+									break;
+				}	
 				}	
 			}	
 		break;
 	 
 	// ========== Проверка температуры АБ ...................................................................................14
 	case bTst_T_NVAB:
+	
+		switch (cntRazr)																								
+		{
+			case 1:	//cntRazr = 1, этап 2
+				sync_AND_2 = ( stat4[iMUK_ZRU2] & bready3 ) && ( stat4[iMUK_ZRU3] & bready3 ); 	
+				sync_OR_1 = ( stat4[iMUK_ZRU2] & bready3 ) || ( stat4[iMUK_ZRU3] & bready3 );
+				break;					
+			case 2:	//cntRazr = 2, этап 2
+				sync_AND_2 = ( stat4[iMUK_ZRU2] & bready4 ) && ( stat4[iMUK_ZRU3] & bready4 ); 	
+				sync_OR_1 = ( stat4[iMUK_ZRU2] & bready4 ) || ( stat4[iMUK_ZRU3] & bready4 );	
+				break;	
+			case 3: //cntRazr = 3, этап 8
+				sync_AND_2 = ( stat4[iMUK_ZRU2] & bready5 ) && ( stat4[iMUK_ZRU3] & bready5 ); 	
+				sync_OR_1 = ( stat4[iMUK_ZRU2] & bready5 ) || ( stat4[iMUK_ZRU3] & bready5 );	
+				break;					
+			case 4:	//cntRazr = 4, этап 8
+				sync_AND_2 = ( stat4[iMUK_ZRU2] & bready6 ) && ( stat4[iMUK_ZRU3] & bready6 ); 	
+				sync_OR_1 = ( stat4[iMUK_ZRU2] & bready6 ) || ( stat4[iMUK_ZRU3] & bready6 );	
+				break;
+			default:
+				sync_AND_2 = 0;
+				sync_OR_1 = 0;
+				break;
+		}		
 		
-		if (!bPauza) {																											// Пауза 5 мин bPauza5m
+		if (!bPauza) {																											// Пауза 
 			if	((T <= Tn2_def)||																								// Tn2_def = 30
-					((stat3[iMUK_ZRU2] & bready)&&	
-					( stat3[iMUK_ZRU3] & bready)))
-			{
-				stat3[iMUK_ZRU] |= bready;
+						sync_AND_2) 		//если в двух других МК уже есть нужный флаг
+			{			
+				//если мы попали внутрь, значит нужно изменить состояние флага синхронизации соответствующего этапа
+				switch (cntRazr)																								
+				{
+					case 1:	
+						stat4[iMUK_ZRU] |= bready3;	//cntRazr = 1, этап 2
+						break;					
+					case 2:	
+						stat4[iMUK_ZRU] |= bready4;	//cntRazr = 2, этап 2
+						break;	
+					case 3:
+						stat4[iMUK_ZRU] |= bready5;	//cntRazr = 3, этап 8
+						break;					
+					case 4:	
+						stat4[iMUK_ZRU] |= bready6;	//cntRazr = 4, этап 8
+						break;					
+				}						
+				
 				stat3[iMUK_ZRU] &= ~errPrevDopustT;
 				
-				if ((stat3[iMUK_ZRU2] & bready)||																	//
-						(stat3[iMUK_ZRU3] & bready))
+				if (sync_OR_1) //если хотя бы водном из двух других МК есть флаг синхронизации
 				{
 					if (cntRazr==2) { StepAlgortm = bVkl_RS; bPauza = 0; }					// если мы находимся в начале третьего этапа
 					else 
@@ -876,7 +938,6 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 					}
 				}
 				else	{
-					//stat3[iMUK_ZRU] &= ~bready;
 					bPauza = 0;
 //					LimsCount = vsCount2;		sCount=0;		bPauza=1;										// Сброс счётчика, включене паузы 2 сек
 					StepAlgortm = bTst_T_NVAB;	
@@ -903,10 +964,11 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 		//statTVC = 3;			tstatTVC =0;																		// Этап проведения ТВЦ
 	 if (!bPauza)	{
 		if ((sCount_2h >= vhCount2) ||																			// 2*60*60сек
-				((stat3[iMUK_ZRU2] & bready)&&																	// включен запрет Разряда
-				( stat3[iMUK_ZRU3] & bready)))
+				((stat4[iMUK_ZRU2] & bready4)&&																	// включен запрет Разряда
+				( stat4[iMUK_ZRU3] & bready4)))
 		{
-			stat3[iMUK_ZRU] |= bready;
+			stat4[iMUK_ZRU] |= bready4;	
+
 			stat3[iMUK_ZRU] &= ~errPrevDopustT;
 
 			bPauza = 0;	//LimsCount = vsCount5;	sCount = 0;											// Активация паузы 20сек
@@ -919,8 +981,8 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 	case bVkl_RS:								
 		
 		if (!bPauza)	{
-			if ((stat3[iMUK_ZRU2] & bready)||																	// 
-					(stat3[iMUK_ZRU3] & bready))
+			if ((stat4[iMUK_ZRU2] & bready4)||																	// 
+					(stat4[iMUK_ZRU3] & bready4))
 				{
 					statTVC = 4;				tstatTVC =0;																	// Этап проведения ТВЦ
 					pVkl_RS(0);																												// Включаем РС
@@ -997,7 +1059,6 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 	case bWaitOtkl_RS:							
 
 		if (!bPauza) {
-			stat3[iMUK_ZRU] &= ~bready;
 			if	(stat1[iMUK_ZRU] & bPC)		stat2[iMUK_ZRU] |= errNoOtklRS;			// Собщение "Не отключается РС"
 			LimsCount = vmCount1;		sCount = 0;		bPauza = 1;									// При отладке vmCount5 = 2 сек Активация паузы
 			StepAlgortm = bVklKomp;																						// Переход на включение КОМП
@@ -1887,15 +1948,29 @@ void MakePack8(void)	// Получение данных восстановлен
 		pVkl_Zapr_Razrayd();																								// «ЗАПРЕТ РАЗРЯД» = 1,
 		pOtkl_Test_Razrayd();																								// «ОТКЛ ТЕСТ РАЗРЯД»,
 		
+		//сбрасываем все биты, участвующие в синхронизации
+		stat3[iMUK_ZRU] &= ~bready;
+		stat3[iMUK_ZRU] &= ~bZaprZar;
+		stat3[iMUK_ZRU] &= ~bZaprRazr;
+		stat4[iMUK_ZRU] = 0;	
+		
 		switch (statTVC)	{																									// 
 		case 	1:	StepAlgortm = bVkl_Tst_Zarayd;	cntRazr = 1;
 							break;
 		case	2:	StepAlgortm = bVkl_Test_Razr;		cntRazr = 1;
 							break;
-		case 	3:	StepAlgortm = bWait_2;	cntRazr = 2;	sCount_2h = tstatTVC;			
+		case 	3:	
+							// Следующий этап выбирается исходя из необходимости: либо происходят наземные испытания, либо полет
+							#ifdef HOURS2 
+								StepAlgortm = bWait_2; //Наземные испытания, ждем 2 часа
+								sCount_2h = tstatTVC;			
+							#else					
+								StepAlgortm = bTst_T_NVAB; // Полет, идем на проверку температуры
+							#endif	
+							cntRazr = 2;	
 							break;
-		case 	4:	StepAlgortm = bWait_2;	cntRazr = 2;	sCount_2h = vhCount2+1;			
-							stat3[iMUK_ZRU] |= bready;							
+		case 	4:	StepAlgortm = bVkl_RS;	cntRazr = 2;			
+							stat4[iMUK_ZRU] |= bready4;
 							break;
 		case	5:	StepAlgortm = bVklKomp;	cntRazr = 2;			
 							break;
@@ -1912,7 +1987,7 @@ void MakePack8(void)	// Получение данных восстановлен
 		mode = TEST;
 		stat1[iMUK_ZRU] &= ~bMain;
 		stat1[iMUK_ZRU] |= bTest;
-
+		
 		//Обязательно нужно следить, чтобы не было одновременно двух пауз bPauza_TVC=1 и bPauza = 1, иначе в функции счета счетчик будет увеличиваться два раза
 		LimsCount = vsCount20;	sCount=0;		bPauza_TVC=1;										// Активация паузы 20 сек
 		//stat3[iMUK_ZRU] = 0;
@@ -2586,6 +2661,9 @@ void Var_init()
 	stat1[iMUK_ZRU] = bMain;																							// Статус и сообщения ЗРУ stat1[3] = {РС | ЗРУ | Подзаряд| ТВЦ |Основной режим |Заряд  |Разряд};
 	stat2[iMUK_ZRU] = 0;																									// Сообщения ЗРУ 					stat2[3], stat3[3];
 	stat3[iMUK_ZRU] = 0;
+	stat4[iMUK_ZRU] = 0;
+	sync_AND_2 = 0; //служебная переменная для хранения результатов синхронизации, логические И двух других соседей (нужно оба других) 
+	sync_OR_1 = 0; //служебная переменная для хранения результатов синхронизации, логические ИЛИ двух других соседей (достаточно хотя бы одного другого)
 
 	bRestData = 1;																												// 1 - восстановить данные
 
@@ -2976,7 +3054,15 @@ int main(void)
 				if (!(stat1[iMUK_ZRU] & bTest))	{
 					stat1[iMUK_ZRU] &= ~bMain;
 					stat1[iMUK_ZRU] |= bTest;		StepAlgortm = bInit_TVC;
-					bPauza_TVC = 0;	stat3[iMUK_ZRU] = 0;
+					bPauza_TVC = 0;	
+					//сбрасываем все биты, участвующие в синхронизации
+					//раньше сбрасывали весь байт stat3[iMUK_ZRU] = 0;
+					//теперь сбрасываем конкретные биты, участвующие в ТВЦ, другие биты не трогаем
+					stat3[iMUK_ZRU] &= ~bready;
+					stat3[iMUK_ZRU] &= ~bZaprZar;
+					stat3[iMUK_ZRU] &= ~bZaprRazr;
+					stat4[iMUK_ZRU] = 0;	
+					//----------------------------------------------------------------------------
 				}
 				mode = TEST;		
 				
