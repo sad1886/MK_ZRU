@@ -96,6 +96,7 @@ unsigned char i;																										//
 extern volatile unsigned char bNoWrkCAN;														// 1 - CAN работает, 0 - CAN не работает
 
 extern volatile unsigned char bRestData, vRestData;									// 1 - восстановить данные
+extern volatile unsigned char bRestData_inidiv;											// запрос на восстановление данных, индивидуальный
 
 extern volatile unsigned char bSendStatus;													// послать байт состояния МУК ЗРУ
 
@@ -1920,7 +1921,7 @@ void MakePack7(void)	// Заполнение пакета 7
 4							Текущее время от начала этапа 											ufix8,z = 0.283 ч, x0 = 0 ч
 */
 
-	PackRs7[4] = (bRestData<<7) | statTVC;																// Запрос на восстановление данных, ЗВД	1/0
+	PackRs7[4] = (bRestData<<7) | (bRestData_inidiv<<6) | statTVC;				// Запрос на восстановление данных, ЗВД	1/0
 	PackRs7[5] = (int) ((W_raz - x0_p7[0])/z_p7[0]+0.5);									// Энергоемкость АБ при разряде, в том числе в ТВЦ
 	PackRs7[6] = (int) ((C_raz - x0_p7[1])/z_p7[1]+0.5);									// Емкость АБ при разряде,  в том числе в ТВЦ
 
@@ -2665,7 +2666,9 @@ void Var_init()
 	sync_AND_2 = 0; //служебная переменная для хранения результатов синхронизации, логические И двух других соседей (нужно оба других) 
 	sync_OR_1 = 0; //служебная переменная для хранения результатов синхронизации, логические ИЛИ двух других соседей (достаточно хотя бы одного другого)
 
-	bRestData = 1;																												// 1 - восстановить данные
+	//при начале работы программы контроллер выставляет запрос на восстановление данных, и индивидуальный и общий (ведь достаточно, чтобы хотя бы в одном МК появился этот запрос)
+	bRestData = 1;																												// 1 - восстановить данные, 
+	bRestData_inidiv = 1;																									// индивидуальный запрос выставляется только здесь - задача показать, что именно этот МК сформировал запрос
 
 	ind_pack1 = 0;						ind_pack2 = 0;
 	lngPack1 = Npack_Cmd-1;		lngPack2 = Npack_Cmd-1;											// Длина пакета RS485 максимальная
@@ -2723,7 +2726,7 @@ void WrkCmd_1(void)
 						case gOtkl_RS:	 			pOtkl_RS(0);						break;								// 0x5 ОТКЛ РС 	отключать разрядные сопротивления в БЭ mode = Otkl_RS;
 						case gVkl_Podzarayd:	if(DataOk)	mode = initPodzarayd;		break;		// 0x6 ВКЛ Подзаряд
 						case gOtkl_Podzarayd:	mode = Otkl_Podzarayd;	break;								// 0x7 ОТКЛ Подзаряд
-						case OZVD:						bRestData = 0;					break;								// 0x8 «Отключение запроса на восстановление данных»
+						case OZVD:						bRestData = 0; bRestData_inidiv = 0;	break;								// 0x8 «Отключение запроса на восстановление данных»
 						}
 												p_ParRs1 = PackRs2;	BatchSize1 = lngPackRs2;	break;
 		
@@ -2785,7 +2788,7 @@ void WrkCmd_2(void)
 						case gOtkl_RS:	 			pOtkl_RS(0);						break;								// 0x5 ОТКЛ РС 	отключать разрядные сопротивления в БЭ mode = Otkl_RS;
 						case gVkl_Podzarayd:	if(DataOk)	mode = initPodzarayd;		break;		// 0x6 ВКЛ Подзаряд
 						case gOtkl_Podzarayd:	mode = Otkl_Podzarayd;	break;								// 0x7 ОТКЛ Подзаряд
-						case OZVD:						bRestData = 0;					break;								// 0x8 «Отключение запроса на восстановление данных»
+						case OZVD:						bRestData = 0; bRestData_inidiv = 0; break;								// 0x8 «Отключение запроса на восстановление данных»
 						}
 												p_ParRs2 = PackRs2;	BatchSize2 = lngPackRs2;	break;
 		
