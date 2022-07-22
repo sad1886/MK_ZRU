@@ -2827,30 +2827,32 @@ void WrkCmd_2(void)
 //-------------------------------------------------------------------------------------------------------------------------
 // Подготовка мажоритированных данных для телеметрии
 unsigned int MajorStatZRU (unsigned char * stat)
-{	unsigned int res=0;
+{	
+	unsigned int res=0;
 	unsigned char is, st0, st1, st2;
-	unsigned char bit1, bit2, maska;		
+	unsigned char maska, bit_i, bit_m;	//bit_i - индивидуальное значение, bit_m - мажоритированное
 
- for (is=0;is<8;is++)	{
-	maska = 1<<is;
+	bit_m = 0;
+	bit_i = stat[iMUK_ZRU];
+		
+	for (is=0;is<8;is++)	{
+		maska = 1<<is;
 
-	st0 = (maska & stat[0])>>is;
-	st1 = (maska & stat[1])>>is;
-	st2 = (maska & stat[2])>>is;
+		st0 = (maska & stat[0])>>is;
+		st1 = (maska & stat[1])>>is;
+		st2 = (maska & stat[2])>>is;
 
-	if ( (st0==st1) && (st0==st2) )	{
-			bit1 = st0;
-			bit2 = 0;}
-	else	{
-		bit1=0;
-		if (st0==st1)	{		bit1 = st0;	}
-		if (st0==st2)	{		bit1 = st0;	}
-		if (st1==st2)	{		bit1 = st1;	}
-		bit2=1;
-	}		
-	
-	res |= (bit1<<(is*2)) | (bit2<<((is*2)+1));
- }
+		if ( (st0==st1) && (st0==st2) )	{ //если мажоритар совпал
+				bit_m = st0;
+		}
+		else	{
+			if (st0==st1)	{		bit_m = st0;	}
+			if (st0==st2)	{		bit_m = st0;	}
+			if (st1==st2)	{		bit_m = st1;	}
+		}		
+
+		res |= (bit_m<<(is*2)) | (bit_i<<((is*2)+1));
+	}
 	return res;
 }
 
