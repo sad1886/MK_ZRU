@@ -2855,36 +2855,6 @@ unsigned int MajorStatZRU (unsigned char * stat)
 }
 
 //-------------------------------------------------------------------------------------------------------------------------
-// Подготовка мажоритированных данных для телеметрии
-unsigned int MajorStatZRU_ (unsigned char * stat)
-{	unsigned int res=0;
-	unsigned char is, st0, st1, st2;
-	unsigned char bit1, bit2, maska;		
-
- for (is=0;is<8;is++)	{
-	maska = 1<<is;
-
-	st0 = (maska & stat[0])>>is;
-	st1 = (maska & stat[1])>>is;
-	st2 = (maska & stat[2])>>is;
-
-	if ( (st0==st1) && (st0==st2) )	{
-			bit1 = st0;//			bit2 = 0;
-	}
-	else	{
-		bit1=0;
-		if (st0==st1)	{		bit1 = st0;	}
-		if (st0==st2)	{		bit1 = st0;	}
-		if (st1==st2)	{		bit1 = st1;	}//		bit2=1;
-	}		
-	bit2 = (maska & stat[iMUK_ZRU])>>is;
-	
-	res |= (bit1<<(is*2)) | (bit2<<((is*2)+1));
- }
-	return res;
-}
-
-//-------------------------------------------------------------------------------------------------------------------------
 // Статус ЗРУ
 //void StatZRU (void)
 //{	unsigned char is, st0, st1, st2;
