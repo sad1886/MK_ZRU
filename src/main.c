@@ -2273,18 +2273,15 @@ void Zaryd_NVAB_noCAN (void)											/* _З_А_Р_Я_Д___Н_В_А_Б_ по п
 		
 	// .......... Ожидание снятия запрета заряда ............................................................................
 	case bTst_P_NVAB:
-
-		if (!bPauza) {
-			if	(!bitNotZar)	{																								// Включение заряда
-				pOtkl_Zapr_Zarayd ();																						// Запрет заряда=0
+		if	(!bitNotZar)	{																								// Включение заряда
+			pOtkl_Zapr_Zarayd ();																						// Запрет заряда=0
 // удаляем сообщения об ошибках из мест, где им не место	
 //				stat2[iMUK_ZRU] &= ~errNoVklZar;																// Собщение "Не включился заряд АБ"=0
-				LimsCount = vsCount5;	sCount=0;		bPauza=1;											// Активация паузы 5 сек
-				StepAlgortmZar = bWaitOtkl_ZaprZar;
-			}	
-			else	{																														// Ожинание снятия Запрета Заряда
-				LimsCount = vsCount20;	sCount=0;		bPauza=1;										// Активация паузы 20 сек
-			}
+			LimsCount = vsCount5;	sCount=0;		bPauza=1;											// Активация паузы 5 сек
+			StepAlgortmZar = bWaitOtkl_ZaprZar;
+		}	
+		else	{																														// Ожинание снятия Запрета Заряда
+			LimsCount = vsCount20;	sCount=0;		bPauza=1;										// Активация паузы 20 сек
 		}
 		break;
 
