@@ -344,10 +344,10 @@ void CAN2_IRQHandler()																														// Получает данн
 						case 12:	i = 2;		break;						// МУК3
 						}
 						if (i != iMUK_ZRU)	{
-							stat1[i] = MDR_CAN1->CAN_BUF[nbuf_RX].DATAL;
-							stat2[i] = MDR_CAN1->CAN_BUF[nbuf_RX].DATAL >> 8;
-							stat3[i] = MDR_CAN1->CAN_BUF[nbuf_RX].DATAL >> 16;
-							stat4[i] = MDR_CAN1->CAN_BUF[nbuf_RX].DATAL >> 24;
+							stat1[i] = MDR_CAN2->CAN_BUF[nbuf_RX].DATAL;
+							stat2[i] = MDR_CAN2->CAN_BUF[nbuf_RX].DATAL >> 8;
+							stat3[i] = MDR_CAN2->CAN_BUF[nbuf_RX].DATAL >> 16;
+							stat4[i] = MDR_CAN2->CAN_BUF[nbuf_RX].DATAL >> 24;
 //							if (stat1[i] != 0x40)
 //								stat1[i] = 0x40;
 							//if ((!bRestData)&&(!vRestData))		{
