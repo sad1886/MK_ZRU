@@ -15,7 +15,7 @@
 
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //----------- Версия прошивки ----------------------------------------------------
-#define Version 7.0.6
+#define Version 8.0.0
 
 //************__В_Ы_Б_О_Р___НОМЕРА_ЗРУ_и_НОМЕРА__МУК__**********************************************************************
 
@@ -476,7 +476,8 @@ void Var_init(void);												// Инициализация переменны
 void EnableIRQ_ADC_CAN_UART (void);
 
 //--------------------------------------------------------------------------------------------------------------------------
-void pVkl_Shim_ZRU (int bWait);					void pOtkl_Shim_ZRU (int bWait);				// 1 
+//void pVkl_Shim_ZRU (int bWait);					void pOtkl_Shim_ZRU (int bWait);				// 1 
+void pVkl_AB_CEC_Shim (int bWait);			void pOtkl_AB_CEC_Shim (int bWait);			// 1 
 void pVkl_KOMP (void);									void pOtkl_KOMP (void);									// 2
 void pVkl_Zapr_Zarayd (void);						void pOtkl_Zapr_Zarayd (void);					// 3
 void pVkl_Zapr_Razrayd (void);					void pOtkl_Zapr_Razrayd (void);					// 4

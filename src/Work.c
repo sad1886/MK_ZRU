@@ -142,13 +142,16 @@ float abs_f (float vf)
 //{
 //	MDR_PORTF->RXTX |= 0x8;																			// Отключить ЗРУ от АБ		22/PF3
 //}
-
+/*
 // 1 ----------------------------------------------------------------------------------------------------------------------------------------------
 void pVkl_Shim_ZRU (int bWait)																// "ВКЛ ЗРУ" 
 {	
 	MDR_PORTF->RXTX |= 0x8;		Wait_(tWaitCmd);									// Подключить ЗРУ к АБ		22/PF3
+	
 	MDR_PORTA->RXTX |= 0x1;		Wait_(tWaitCmd);									// Подключить ЗРУ к СЭС 	25/PA0
+	
 	MDR_PORTC->RXTX |= 0x4;		Wait_(tWaitCmd);									// Откл КОМП
+	
 	MDR_PORTA->RXTX |= 0x2;		Wait_(tWaitCmd);									// ШИМ ЗРУ 								26/PA1
 	stat1[iMUK_ZRU]	|= pwrZRU;
 	stat3[iMUK_ZRU] |= vklZRU;																	// ЗРУ включено
@@ -161,6 +164,31 @@ void pOtkl_Shim_ZRU (int bWait)																// "ОТКЛ ЗРУ"
 	MDR_PORTA->RXTX &= ~0x2;	Wait_(tWaitCmd);									// Отключить ШИМ ЗРУ 			26/PA1
 	MDR_PORTA->RXTX &= ~0x1;	Wait_(tWaitCmd);									// Отключить ЗРУ от СЭС 	25/PA0
 	MDR_PORTF->RXTX &= ~0x8;	Wait_(tWaitCmd);									// Отключить ЗРУ от АБ		22/PF3
+	stat1[iMUK_ZRU]	&= ~pwrZRU;
+	stat3[iMUK_ZRU] &= ~vklZRU;																	// ЗРУ отключено
+	set100ms = 1;
+	//if (bWait) Wait_(tWaitCmd);																	// Ожидание завершения коммутации силовый цепей
+}
+*/
+// 1 ----------------------------------------------------------------------------------------------------------------------------------------------
+// Новая функция от 01.12.22
+void pVkl_AB_CEC_Shim (int bWait)															// "ВКЛ ЗРУ" 
+{	
+	MDR_PORTF->RXTX |= 0x8;		Wait_(tWaitCmd);									// Подключить ЗРУ к АБ		22/PF3
+	MDR_PORTC->RXTX |= 0x4;		Wait_(tWaitCmd);									// Откл КОМП
+	stat1[iMUK_ZRU]	|= pwrZRU;
+	stat3[iMUK_ZRU] |= vklZRU;																	// ЗРУ включено
+	//if (bWait) Wait_(tWaitCmd);																	// Ожидание завершения коммутации силовый цепей
+}
+
+// 1 ----------------------------------------------------------------------------------------------------------------------------------------------
+// Новая функция от 01.12.22
+void pOtkl_AB_CEC_Shim (int bWait)														// "ОТКЛ ЗРУ" 
+{
+	MDR_PORTF->RXTX &= ~0x8;	Wait_(tWaitCmd);									// Отключить ЗРУ от АБ					22/PF3
+	MDR_PORTA->RXTX |=  0x4;	Wait_(tWaitCmd);									// Снять запоминание команды 		PA2
+	MDR_PORTA->RXTX &= ~0x4;	Wait_(tWaitCmd);									// Включить запоминание команды PA2
+
 	stat1[iMUK_ZRU]	&= ~pwrZRU;
 	stat3[iMUK_ZRU] &= ~vklZRU;																	// ЗРУ отключено
 	set100ms = 1;

@@ -193,7 +193,7 @@ void Ports_Init_Tst (void)
 void Ports_Init (void)
 {
 	// Инициализация порта A										 PA7, PA6, PA5, PA4, PA3, PA2, PA1, PA0
-	MDR_PORTA->OE = 0x000000A3;								// Выводы 7-6 - UART1; 5-0 выход IQ11..IQ7
+	MDR_PORTA->OE = 0x000000A7;								// Выводы PA7..6 - UART1; PA2..0 выход; PA3 вход
 	MDR_PORTA->FUNC = 0x0000F000;							// Функция порта для всех выводов, кроме 6 и 7 - UART1
 	MDR_PORTA->ANALOG = 0x000000ff;						// Цифровой режим для всех задейсвованных выводов
 	//MDR_PORTA->PWR = 0x0000AAAA;							// Быстрый фронт для всех
