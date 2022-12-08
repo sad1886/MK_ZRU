@@ -1841,7 +1841,7 @@ void MakePack5(void)
 	}
 	nGudAk = nAllAE - cntBadAk;
 
-	if (cntBadAk)	{
+//	if (cntBadAk)	{
 		CurrentDlc = 5; CurrentCmd = CAN_NumBadAk;
 		CAN_SendCmd(AdrMUK_ZRU, CurrentDlc, CurrentCmd);										// отправки пакета в БЭ
 		bRunCmdCAN = 1;		bTimeOutCmd = 1;
@@ -1849,7 +1849,7 @@ void MakePack5(void)
 //		bRunCmdCAN = 1;		bTimeOutCmd = 1;
 //		CAN_SendCmd(AdrMUK3_ZRU, CurrentDlc, CurrentCmd);										// отправки пакета в БЭ
 //		bRunCmdCAN = 1;		bTimeOutCmd = 1;
-	}
+//	}
 }
 
 //-------------------------------------------------------------------------------------------------------------------------
@@ -2689,11 +2689,11 @@ void ZRU_Init(void)
 	pOtkl_RS(0);
 	Wait(30);																															// Ожидание завершения коммутации силовый цепей
 
+	Var_init();																														// Инициализация переменных
+
 	OnZRU = 0x08 & MDR_PORTA->RXTX;																				// PA3 = 1, ЗРУ включено
 	if (OnZRU)	pVkl_AB_CEC_Shim(0);																			// Подключить ЗРУ к АБ		22/PF3
 	
-	Var_init();																														// Инициализация переменных
-
 	EnableIRQ_ADC_CAN_UART();
 }
 
