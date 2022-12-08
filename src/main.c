@@ -2889,7 +2889,7 @@ int main(void)
 	
 	ZRU_Init();																														// 
 
-	mode = Init_Run;																											// Начальрый режим
+	mode = START;																													// Начальрый режим
 	bPauza5 = 1;	bOneSec = 0;
 	calc_dt = calc_dt5; 																									//по умолчанию дельта времени для расчета W и С будет соответствовать 5 секундам
 	
