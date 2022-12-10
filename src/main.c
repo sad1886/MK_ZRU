@@ -1369,14 +1369,13 @@ void Podzarayd (void)														/*	_Подзаряд__Н_В_А_Б_ */
 		
 		stat2[iMUK_ZRU] = 0;
 		stat3[iMUK_ZRU] &= ~(errNoOgrTokRazr|errNoOgrTokZar|errPrevDopustT);
-		//curW_zar = 0;																												// Расчёт W = W + Iab*dt*Uab
 		StepNext = bStartPodzaryd;
 
 	// .......... Включение запрета Заряда ..................................................................................
 	case bVkl_ZaprZarayd:
 		
 		pVkl_Zapr_Zarayd ();																								// Запрет заряда=1
-		LimsCount = vsCount20;	sCount=0;		bPauza=1;													// Активация паузы 20 сек
+		LimsCount = vsCount20;	sCount=0;		bPauza=1;												// Активация паузы 20 сек
 		StepAlgortm = bWaitVkl_ZaprZara;																		// След шаг алгоритма Ожидание включения запрета заряда
 		break;
 
@@ -1384,7 +1383,7 @@ void Podzarayd (void)														/*	_Подзаряд__Н_В_А_Б_ */
 	case bWaitVkl_ZaprZara:		
 
 		if (!bPauza) {
-			if	(aI_zar > aIporog)	stat2[iMUK_ZRU] |= errNoOtklZar;						// Собщение "Не отключился Заряд АБ"=1
+			if	(aI_zar > aIporog)	stat2[iMUK_ZRU] |= errNoOtklZar;					// Собщение "Не отключился Заряд АБ"=1
 			StepAlgortm = StepNext;																						// След шаг алгоритма
 		}
 		break;
@@ -1508,9 +1507,7 @@ void Podzarayd (void)														/*	_Подзаряд__Н_В_А_Б_ */
 				else	StepNext = bOtklKomp;
 				StepAlgortm = bVkl_ZaprZarayd;																	// След шаг алгоритма Ожидание включения запрета заряда
 			}
-			else	{	// Расчёт W
-				//Calculation_Podzaryad(aI_zar);
-				//Uab_old = Uab;
+			else	{
 				LimsCount = vsCount5;	sCount=0;		bPauza=1;											// Активация паузы 5сек
 				StepAlgortm = bZarydComp;																				// След шаг алгоритма
 			}
@@ -2152,7 +2149,7 @@ void Zaryd_NVAB (void)													/* _З_А_Р_Я_Д___Н_В_А_Б_ */
 	case bWaitVkl_ZaprZara:		
 
 		if (!bPauza) {
-			if	(aI_zar > aIporog)	stat2[iMUK_ZRU] |= errNoOtklZar;						// Собщение "Не отключился Заряд АБ"=1
+			if	(aI_zar > aIporog)	stat2[iMUK_ZRU] |= errNoOtklZar;					// Собщение "Не отключился Заряд АБ"=1
 			LimsCount = vsCount20;	sCount=0;		bPauza=1;											// Активация паузы 20сек
 			StepAlgortmZar = bWaitTmax_2;																			// След шаг алгоритма Ожидание нормализации температуры
 		}
@@ -2167,8 +2164,8 @@ void Zaryd_NVAB (void)													/* _З_А_Р_Я_Д___Н_В_А_Б_ */
 			StepAlgortmZar = bVklKomp;
 		}	
 		else	{
-			if (mode_Razryad)		StepAlgortmZar = bInitZarayd;		//
-			else															StepAlgortmZar = bVkl_Zarayd;		// "Петля" - процесс заряда
+			if (mode_Razryad)		StepAlgortmZar = bInitZarayd;									//
+			else								StepAlgortmZar = bVkl_Zarayd;									// "Петля" - процесс заряда
 		}
 		break;
 
