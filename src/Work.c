@@ -502,8 +502,10 @@ void PutParamADC (void)																																				// С 14.07.20
 					{
 						StepAlgortmZar = bInitZarayd;																																//начинаем алгоритм заново
 						//в момент перехода из одного режима в другой обнуляем эти флаги
-						stat2[iMUK_ZRU] = 0;
-						stat3[iMUK_ZRU] &= ~(errNoOgrTokRazr|errNoOgrTokZar|errPrevDopustT);  											
+						//stat2[iMUK_ZRU] = 0;
+						//stat3[iMUK_ZRU] &= ~(errNoOgrTokRazr|errNoOgrTokZar|errPrevDopustT);  											
+						stat2[iMUK_ZRU] &= ~(errNoVklRazr|errNoOtklRazr);																						// Сброс аварийных сообщений разряда
+						stat3[iMUK_ZRU] &= ~(errNoOgrTokRazr|errPrevDopustT);  											
 					} //если был разряд, значит нужно начать заново алгоритм заряда
 					mode_Razryad = 0; //больше нет разряда								
 					mode_Zaryad = 1; //теперь у нас заряд
@@ -524,8 +526,10 @@ void PutParamADC (void)																																				// С 14.07.20
 					{
 						StepAlgortmRazr = bInitRazryda;																															//начинаем алгоритм заново
 						//в момент перехода из одного режима в другой обнуляем эти флаги							
-						stat2[iMUK_ZRU] = 0;
-						stat3[iMUK_ZRU] &= ~(errNoOgrTokRazr|errNoOgrTokZar|errPrevDopustT|errNoOtklRazr);  											
+						//stat2[iMUK_ZRU] = 0;
+						//stat3[iMUK_ZRU] &= ~(errNoOgrTokRazr|errNoOgrTokZar|errPrevDopustT);  											
+						stat2[iMUK_ZRU] &= ~(errNoVklZar|errNoOtklZar);																							// Сброс аварийных сообщений заряда
+						stat3[iMUK_ZRU] &= ~(errNoOgrTokZar|errPrevDopustT);  											
 					} //если был заряд, значит нужно начать заново алгоритм разряда
 					mode_Zaryad = 0; //больше нет заряда						
 					mode_Razryad = 1; //теперь у нас разряд 

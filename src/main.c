@@ -274,8 +274,9 @@ unsigned char set100ms, yes100ms;
 unsigned char repeatOne;
 //--------------------------- для алгоритма переменные ------------------------------------------------------------------------------
 unsigned char mode_Razryad = 0; //если не 0, значит мы находимся в режиме разряда (ток разряда больше нуля)
-unsigned char mode_Zaryad = 0; //если не 0, значит мы находимся в режиме заряда (ток заряда больше нуля) 
+unsigned char mode_Zaryad = 0;  //если не 0, значит мы находимся в режиме заряда (ток заряда больше нуля) 
 
+unsigned char bReadyWrk, cntReadyWrk;			// Разрешение на ответы по RS485
 //-------------------------------------------------------------------------------------------------------------------------
 // Подготовка мажоритированных данных для телеметрии
 unsigned int MajorStatZRU(unsigned char * stat);
@@ -700,7 +701,7 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 					 ((0.8*Pn <= P) && (P <= Pn) && (T >= Tn2))||									// (0.8Pn<=P<=Pn && T>=Tn2)||
 					 ((Pn <= P) && (P <= Pv) && (T >= Tn1))||											// (Pn<=P<=Pv && T>=Tn1)
 					 (P >= Pv) ||
-					 ((stat3[iMUK_ZRU2] & bZaprZar)&&															// включен запрет Разряда
+					 ((stat3[iMUK_ZRU2] & bZaprZar)&&															// включен запрет Заряда
 					 ( stat3[iMUK_ZRU3] & bZaprZar))
 					)
 			{			 
@@ -2320,8 +2321,8 @@ void Zaryd_NVAB_noCAN (void)											/* _З_А_Р_Я_Д___Н_В_А_Б_ по п
 				StepAlgortmZar = bWaitVkl_ZaprZara;															// След шаг алгоритма Ожидание включения запрета заряда
 		}
 		else	{																															// Не включился заряд.
-			if (mode_Razryad)		StepAlgortmZar = bInitZarayd;		// Выход из "Петли"
-			else	{														StepAlgortmZar = bVkl_Zarayd;		// "Петля" - процесс заряда
+			if (mode_Razryad)		StepAlgortmZar = bInitZarayd;									// Выход из "Петли"
+			else	{							StepAlgortmZar = bVkl_Zarayd;									// "Петля" - процесс заряда
 				LimsCount = vsCount20;	sCount=0;		bPauza=1;										// Активация паузы 20 сек
 			}
 		}
@@ -2574,6 +2575,10 @@ void OneSecAdd (void)													/* Добавить секунду */
 	AddSec = 0;		bOneSec = 1;
 	
 	//......................................................................
+	if (cntReadyWrk < PauseReadyWrk) cntReadyWrk++;
+	else	bReadyWrk = 1; 
+	
+	//......................................................................
 	if (vRestData)	vRestData--;
 	
 	//......................................................................
@@ -2638,10 +2643,10 @@ void OneSecAdd (void)													/* Добавить секунду */
 void Var_init()
 {	
 	iMUK_ZRU = nMUK_ZRU-1;
-	switch (iMUK_ZRU)	{																								// 
-	case 0:	iMUK_ZRU2=1; iMUK_ZRU3=2;	break;													// 
-	case 1:	iMUK_ZRU2=0; iMUK_ZRU3=2;	break;													// 
-	case 2:	iMUK_ZRU2=0; iMUK_ZRU3=1;	break;													// 
+	switch (iMUK_ZRU)	{																										// 
+	case 0:	iMUK_ZRU2=1; iMUK_ZRU3=2;	break;															// 
+	case 1:	iMUK_ZRU2=0; iMUK_ZRU3=2;	break;															// 
+	case 2:	iMUK_ZRU2=0; iMUK_ZRU3=1;	break;															// 
 	}
 	
 	iadc = 1;																															// Чтение АЦП начинаем с 1-го канала
@@ -2892,6 +2897,7 @@ int main(void)
 	ZRU_Init();																														// 
 
 	mode = Init_Run;																											// Начальрый режим
+	cntReadyWrk = 0;																											// Счётчик задержки 3 секунды
 	bPauza5 = 1;	bOneSec = 0;
 	calc_dt = calc_dt5; 																									//по умолчанию дельта времени для расчета W и С будет соответствовать 5 секундам
 	
@@ -2991,6 +2997,8 @@ int main(void)
 		
 			case START:																												// Начальный запуск
 				stat1[iMUK_ZRU] |= bMain;
+				stat2[iMUK_ZRU] = 0;																						// Сброс флагов ошибок
+				stat3[iMUK_ZRU] &= ~(errNoOgrTokRazr|errNoOgrTokZar|errPrevDopustT);  											
 				StepAlgortmZar = bInitZarayd;																		// StepAlgortmZar = bInitZarayd
 				StepAlgortmRazr = bInitRazryda;
 				mode = Work;
@@ -3100,7 +3108,7 @@ int main(void)
 		} //end of switch (mode)
 				
 		//..............................................................................................................................
- 		if (bReqBCU[0])		{																									// Запрос от Uart1 БЦУ
+ 		if (bReqBCU[0] && bReadyWrk)		{																		// Запрос от Uart1 БЦУ
 			checksumCalc = Crc16(pack1, lngPack1-2);													// Выисление контрольной суммы
 			checksumIn = pack1[lngPack1-2];																		// Принятая контрольная сумма 
 			checksumIn = (checksumIn<<8) | pack1[lngPack1-1];									// Принятая контрольная сумма 
@@ -3110,7 +3118,7 @@ int main(void)
 			bReqBCU[0] = 0;		lngPack1 = Npack_Cmd-1;													// Длина пакета RS485 максимальная
 		}
 
- 		if (bReqBCU[1])		{	
+ 		if (bReqBCU[1] && bReadyWrk)		{	
 			checksumCalc = Crc16(pack2, lngPack2-2);													// Выисление контрольной суммы
 			checksumIn = pack2[lngPack2-2];																		// Принятая контрольная сумма 
 			checksumIn = (checksumIn<<8) | pack2[lngPack2-1];									// Принятая контрольная сумма 
