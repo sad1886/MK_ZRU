@@ -2723,7 +2723,7 @@ void WrkCmd_1(void)
 						case gOtkl_RS:	 			pOtkl_RS(0);						break;								// 0x5 ОТКЛ РС 	отключать разрядные сопротивления в БЭ mode = Otkl_RS;
 						case gVkl_Podzarayd:	if(DataOk)	mode = initPodzarayd;		break;		// 0x6 ВКЛ Подзаряд
 						case gOtkl_Podzarayd:	mode = Otkl_Podzarayd;	break;								// 0x7 ОТКЛ Подзаряд
-						case OZVD:						bRestData = 0; bRestData_inidiv = 0;	break;								// 0x8 «Отключение запроса на восстановление данных»
+						case OZVD:						bRestData = 0; bRestData_inidiv = 0;break;		// 0x8 «Отключение запроса на восстановление данных»
 						}
 												p_ParRs1 = PackRs2;	BatchSize1 = lngPackRs2;	break;
 		
@@ -2856,32 +2856,12 @@ unsigned int MajorStatZRU (unsigned char * stat)
 	return res;
 }
 
-//-------------------------------------------------------------------------------------------------------------------------
-// Статус ЗРУ
-//void StatZRU (void)
-//{	unsigned char is, st0, st1, st2;
-//	unsigned char maska;		
-
-// for (is=0;is<8;is++)	{
-//	maska = 1<<is;
-
-//	st0 = maska & stat1[0];
-//	st1 = maska & stat1[1];
-//	st2 = maska & stat1[2];
-
-//	if (st0==st1)			wrk_stat |= st0;
-//	if (st0==st2)			wrk_stat |= st0;
-//	if (st1==st2)			wrk_stat |= st1;
-//	
-// }
-//}
 
 /**************************************************************************************************************************
 ***************************************************************************************************************************/
 int main(void)
 {	int bZarRazr;//	unsigned int tmp;
 	
-	//__disable_irq(); 																											// Запрет Interrupts
 	Clock_Init();																													// Инициализация тактового генератора
 	Ports_Init();
 //	Ports_Init_Tst(); 																									// Инициализация портов для отладочной платы
@@ -2890,7 +2870,6 @@ int main(void)
 	UART2_Init();	
  	CAN1_Init(); 
  	CAN2_Init();
-//	__enable_irq ();																											// Глобальное разрешение прерываний
 	SysTickInit(100000);
 	//initInternalWatchdog();																								// Запуск сторожевого таймера
 	
@@ -2900,7 +2879,6 @@ int main(void)
 	cntReadyWrk = 0;																											// Счётчик задержки 3 секунды
 	bPauza5 = 1;	bOneSec = 0;
 	calc_dt = calc_dt5; 																									//по умолчанию дельта времени для расчета W и С будет соответствовать 5 секундам
-	
 	
 	MakePack2_5_8_10();
 	MakePack3();	MakePack4();
@@ -2958,9 +2936,6 @@ int main(void)
 			MakePack7();																											//if ((!(MDR_PORTA->RXTX & 0x20))&&(!(MDR_PORTF->RXTX & 0x04)))	{	MakePack7(); }
 			MakePack9();
 		}									
-
-		//.....................................................................................................................
-		//if (Errors)			{	pOtkl_Shim_ZRU(0);	mode=HARD_ERR;	}							// Ошибки аппаратуры: "ОТКЛ. ЗРУ" 
 
 		//.......................................................... Контроль обновления данных телеметрии.....................
 		if (nfRec_CanDatch1 == okFrameDatch)	{															// Получены все фреймы
@@ -3037,7 +3012,6 @@ int main(void)
 					stat3[iMUK_ZRU] &= ~bZaprZar;
 					stat3[iMUK_ZRU] &= ~bZaprRazr;
 					stat4[iMUK_ZRU] = 0;	
-					//----------------------------------------------------------------------------
 				}
 				mode = TEST;		
 				
@@ -3069,17 +3043,19 @@ int main(void)
 
 					EndTVC = 1; //Устанавливаем флаг того, что процесс окончания ТВЦ запущен
 				}
-	
 				break;
 
 			case initPodzarayd:																								// Запуск подпрограммы Подзаряд АБ
-				if ((!(stat1[iMUK_ZRU] & bTest)) &&
-						(!(stat1[iMUK_ZRU] & bPodzaryad)))	{						
-					stat1[iMUK_ZRU] &= ~bMain;
-					stat1[iMUK_ZRU] |= bPodzaryad;	StepAlgortm = bInitPodzaryd;
+				if (stat1[iMUK_ZRU] & bTest)				mode = TEST;
+				else	{
+					if (!(stat1[iMUK_ZRU] & bPodzaryad))	{						
+						stat1[iMUK_ZRU] &= ~bMain;
+						stat1[iMUK_ZRU] |= bPodzaryad;	StepAlgortm = bInitPodzaryd;
+					}
+					mode = Vkl_Podzarayd;
 				}
-				mode = Vkl_Podzarayd;
-					
+				break;
+				
 			case Vkl_Podzarayd:																								// Запуск подпрограммы Подзаряд АБ
 				Podzarayd();
 				break;
@@ -3092,11 +3068,11 @@ int main(void)
 			case ADC_ERR:																											// Повтор чтения текущего канала АЦП
 //				ADC_Start(iadc);																								// Перезапуск опроса каналов АЦП
 //				MDR_ADC->ADC1_CFG |= ADC1_CFG_REG_GO;														// Запуск преобразования
-				mode=Init_Run;																									// 
+				mode = Init_Run;																								// 
 				break;
 			
 			case RESTART:																											// Рестарт UART и переход в прерванный режим
-				mode=Init_Run;																									// 
+				mode = Init_Run;																								// 
 				break;
 			
 			case CAN_not_working:																							// Отказ CAN
