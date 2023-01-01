@@ -46,7 +46,7 @@ extern float Vals_ZRU[nParams];																// Массив реальных 
 extern float Vals_ZRUold[nParams];														// Массив реальных значений измеренных параметров ЗРУ
 
 float aI_razr, aI_razrOld, aI_zar;
-float aU_zru, aU_zru_Old;																			// Uаб измеренное самим ЗРУ, а также предыдущее значение, необходимое для расчета W
+float vU_zru, vU_zru_Old;																			// Uаб измеренное самим ЗРУ, а также предыдущее значение, необходимое для расчета W
 union uBytesFloat16 aIrazr, aIzar;														// Для передачи по CAN в БЭ
 
 volatile unsigned char OkDataADC;															// Значение канала АЦП готово
@@ -551,9 +551,9 @@ void PutParamADC (void)																																				// С 14.07.20
 		case 4:		i = iadc-4;		iadc++;																																				// Пропуск канала измерения АЦП №5
 			//Uadc = 3.5;
 			Vals_ZRU[iadc-1] = KoefUABT[iMUK_ZRU][i] * Uadc + dUABT[iMUK_ZRU][i];																// Реальные значения U
-			if (mode_Zaryad)		Vals_ZRU[iadc-1] -= aI_zar * KoefIzarABT[iMUK_ZRU];								// Реальные значения U
-			if (mode_Razryad)		Vals_ZRU[iadc-1] += aI_razr* KoefIrazABT[iMUK_ZRU];								// Реальные значения U
-			aU_zru = Vals_ZRU[iadc-1];																															// Uаб измеренное самим ЗРУ
+			if (mode_Zaryad)		Vals_ZRU[iadc-1] -= aI_zar * KoefIzarABT[iMUK_ZRU];								// Корекция значения U при заряде
+			if (mode_Razryad)		Vals_ZRU[iadc-1] += aI_razr* KoefIrazABT[iMUK_ZRU];								// Корекция значения U при разряде
+			vU_zru = Vals_ZRU[iadc-1];																															// Uаб измеренное самим ЗРУ
 			break;
 			
 		case 6:		i = iadc-5;		
