@@ -37,7 +37,7 @@ extern volatile unsigned char StepAlgortmRazr, StepAlgortmZar;
 uint32_t bitNotZar, bitNotRaz;																// Состояние проводных линий
 volatile unsigned char bNoWrkCAN;															// 0 - CAN работает, 1 - CAN не работает
 volatile unsigned char bRestData, vRestData;									// 1 - восстановить данные
-volatile unsigned char bRestData_inidiv;											// запрос на восстановление данных, индивидуальный
+volatile unsigned char bRestData_indiv;												// запрос на восстановление данных, индивидуальный
 volatile unsigned char bSendStatus;														// послать байт состояния МУК ЗРУ
 
 //--------------------------- ADC переменные ------------------------------------------------------------------------------
@@ -327,7 +327,7 @@ void CAN_SendStatusZRU(void)
 //-------------------------------------------------------------------------------------------------------------------------------------------------
 {	int lbuf_TX = nbuf_TX;
 	
-	if(bRestData_inidiv)
+	if(bRestData_indiv)
 		stat3[iMUK_ZRU] |= RestData; // Флаг на восстановление данных, обмениваемся индивидуальными значениями между МУКами
 	else
 		stat3[iMUK_ZRU] &= ~RestData; // Флаг на восстановление данных, обмениваемся индивидуальными значениями между МУКами
