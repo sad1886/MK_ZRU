@@ -2054,7 +2054,7 @@ void MakePack8(void)	// Получение данных восстановлен
 		stat1[iMUK_ZRU] |= bTest;
 		
 		//Обязательно нужно следить, чтобы не было одновременно двух пауз bPauza_TVC=1 и bPauza = 1, иначе в функции счета счетчик будет увеличиваться два раза
-		LimsCount = vsCount20;	sCount=0;		bPauza_TVC=1;										// Активация паузы 20 сек
+		LimsCountTVC = vsCount20;	sCountTVC=0;		bPauza_TVC=1;							// Активация паузы 20 сек
 		//stat3[iMUK_ZRU] = 0;
 	}
 }
@@ -2930,7 +2930,7 @@ unsigned int MajorStatZRU (unsigned char * stat)
 /**************************************************************************************************************************
 ***************************************************************************************************************************/
 int main(void)
-{	int bZarRazr;//	unsigned int tmp;
+{	int bZarRazr;
 	
 	Clock_Init();																													// Инициализация тактового генератора
 	Ports_Init();
@@ -2958,7 +2958,7 @@ int main(void)
 	while (1)												
 	{
 	
-		if (AddSec) OneSecAdd();																						// 
+		if (AddSec) OneSecAdd();																						// Увеличить на одну секунду переменных времени текущего процесса
 			
 		//.....................................................................................................................
 		if ((bRunCmdCAN)&&(!bTimeOutCmd))	{																	// Ожидание (400мс) подтверждения о получении команды БЭ и повтор команды
@@ -2970,14 +2970,14 @@ int main(void)
 		}	
 			
 		//.....................................................................................................................
-		if (bOneSec)	{		bOneSec=0;																				// Раз в секунду
+		if (bOneSec)	{		bOneSec=0;																				// Раз в секунду проверка обновления данных от БЭ 
 
 			if (!mode)	{	mode = Init_Run;	}																	// Переход в рабочий режим при старте программы
 			// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .	
 			if	((updateD1)&&(updateD2))	{																		// Получены все фрейимы пакета1 и пакета2
 				fDataConvert_();
 				GetData();																											// Получить значения P, T, Usr, АБ из БЭ
-				MakePack3();	MakePack4();																			// if ((!bReqBCU[0])&&(!bReqBCU[1]))	{	MakePack3();	MakePack4(); }
+				MakePack3();	MakePack4();																			// Обновить пакеты телеметрии для отправки по RS485
 				cnt=0;	updateD1=0;		updateD2=0;
 				if (mode == CAN_not_working)	{mode = Init_Run;}
 				DataOk = 1;
@@ -3004,11 +3004,11 @@ int main(void)
 			}
 			// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .			
 			MakePack6();
-			MakePack7();																											//if ((!(MDR_PORTA->RXTX & 0x20))&&(!(MDR_PORTF->RXTX & 0x04)))	{	MakePack7(); }
+			MakePack7();																												// Обновить пакеты телеметрии для отправки по RS485
 			MakePack9();
 		}									
 
-		//.......................................................... Контроль обновления данных телеметрии.....................
+		//.......................................................... Контроль обновления данных телеметрии БЭ ...................
 		if (nfRec_CanDatch1 == okFrameDatch)	{															// Получены все фреймы
 			add_nbuf = 0;
 			CAN_SendConf_1(1);																								// Подтверждение: Даные от МУК БЭ получены
@@ -3036,7 +3036,7 @@ int main(void)
 		}
 
 		//.....................................................................................................................
-		switch (mode)																												// Обработчик состояний
+		switch (mode)																												// Переключатель режима работы ЗРУ
 		{
 			case Init_Run:																										// Инициализация всех процессов при старте или сбоях
 				Var_init();																											// Инициализация переменных
@@ -3045,7 +3045,7 @@ int main(void)
 				stat1[iMUK_ZRU] |= bMain;
 				stat2[iMUK_ZRU] = 0;																						// Сброс флагов ошибок
 				stat3[iMUK_ZRU] &= ~(errNoOgrTokRazr|errNoOgrTokZar|errPrevDopustT);  											
-				StepAlgortmZar = bInitZarayd;																		// StepAlgortmZar = bInitZarayd
+				StepAlgortmZar = bInitZarayd;																		// 
 				StepAlgortmRazr = bInitRazryda;
 				mode = Work;
 				break;
@@ -3071,7 +3071,7 @@ int main(void)
 				mode = Work;
 				break;
 			
-			case initTEST:																										// Запуск подпрограммы ТВЦ АБ (определение ёмкости АБ) 
+			case initTEST:																										// Подготовка к запуску ТВЦ АБ
 				if (!(stat1[iMUK_ZRU] & bTest))	{
 					stat1[iMUK_ZRU] &= ~bMain;
 					stat1[iMUK_ZRU] |= bTest;		StepAlgortm = bInit_TVC;
@@ -3086,13 +3086,13 @@ int main(void)
 				}
 				mode = TEST;		
 				
-			case TEST:																												// Запуск подпрограммы ТВЦ АБ (определение ёмкости АБ) 
+			case TEST:																												// Запуск ТВЦ АБ (определение ёмкости АБ) 
 				if (!bPauza_TVC) {
 					Test_NVAB();
 				}
 				break;
 			
-			case Otkl_TEST:	
+			case Otkl_TEST:																										// Останов ТВЦ АБ
 				if(EndTVC) //если процесс окончания ТВЦ уже был запущен
 				{					
 					if (!bPauza_TVC) 	{ // то контролируем окончание задержки, прежде чем перейти в основной режим
@@ -3116,7 +3116,7 @@ int main(void)
 				}
 				break;
 
-			case initPodzarayd:																								// Запуск подпрограммы Подзаряд АБ
+			case initPodzarayd:																								// Подготовка к запуску Подзаряд АБ на СК
 				if (stat1[iMUK_ZRU] & bTest)				mode = TEST;
 				else	{
 					if (!(stat1[iMUK_ZRU] & bPodzaryad))	{						
@@ -3127,18 +3127,16 @@ int main(void)
 				}
 				break;
 				
-			case Vkl_Podzarayd:																								// Запуск подпрограммы Подзаряд АБ
+			case Vkl_Podzarayd:																								// Запуск подпрограммы Подзаряд АБ на СК
 				Podzarayd();
 				break;
 			
-			case Otkl_Podzarayd:																							// Останов подпрограммы Подзаряд АБ
+			case Otkl_Podzarayd:																							// Останов Подзаряд АБ на СК
 				stat1[iMUK_ZRU] &= ~bPodzaryad;
 				mode = START;
 				break;
 			
-			case ADC_ERR:																											// Повтор чтения текущего канала АЦП
-//				ADC_Start(iadc);																								// Перезапуск опроса каналов АЦП
-//				MDR_ADC->ADC1_CFG |= ADC1_CFG_REG_GO;														// Запуск преобразования
+			case ADC_ERR:																											// Выход по ошибке АЦП
 				mode = Init_Run;																								// 
 				break;
 			
@@ -3147,7 +3145,7 @@ int main(void)
 				break;
 			
 			case CAN_not_working:																							// Отказ CAN
-				pNotCan();
+				pNotCan();																											// Работа алгоритмов управления по проводным сигналам
 				bZarRazr = !bZarRazr;
 				if (bZarRazr)		Zaryd_NVAB_noCAN();															//
 				else						Razryd_NVAB_noCAN();														//
