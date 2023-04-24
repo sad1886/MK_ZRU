@@ -103,8 +103,8 @@ volatile unsigned char bRunCmdCAN, CurrentCmd, CurrentDlc;		// Флаг отпр
 uint32_t ResultCAN;																						// Результат выполнения команд Вкл_РС, Откл_РС
 
 volatile union uBytes64 Reciev_CanErrors;											// Телеметрия отказов БЭ
-volatile union uBytes64 Reciev_CanDatch[nFrameDatchCAN];			// Телеметрия датчиков
-volatile union uBytes64 Reciev_CanAB[nFrameABCAN];						// Телеметрия АБ
+volatile union uBytes64 Reciev_CanDatch[numMUKs_BE][nFrameDatchCAN];			// Телеметрия датчиков от 3-х МУКов БЭ
+volatile union uBytes64 Reciev_CanAB[numMUKs_BE][nFrameABCAN];						// Телеметрия АБ от 3-х МУКов БЭ
 
 //--------------------------- переменные времени ------------------------------------------------------------------------------
 extern tTime	sTime;
