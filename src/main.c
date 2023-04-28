@@ -3041,26 +3041,29 @@ void GetParametrsAk(void)
 				vMid = ValueMiddle();																								// Получить серединное значение массива UAB
 				if (abs_f(SumUAk1.Fdata-vMid) < abs_f(SumUAk2.Fdata-vMid)) {				// Значение UАБ МК1 ближе к серединному
 					// МУК3 получает телеметрию АК от МУК1
-					for (i=0; i < nFrameABCAN-1; i++)	{
+					for (i=0; i < nFrameABCAN; i++)	{
 						Reciev_CanAB[2][i].data64	 = Reciev_CanAB[0][i].data64;	}
 				}	
 				else	{																															// Значение UАБ МК2 ближе к серединному
 					// МУК3 получает телеметрию АК от МУК2
-					for (i=0; i < nFrameABCAN-1; i++)	{
+					for (i=0; i < nFrameABCAN; i++)	{
 						Reciev_CanAB[2][i].data64	 = Reciev_CanAB[1][i].data64;	}
 				}	
+				updateUAB2 = 0; updateUAk2 = 0;
 			}			
 			else	{																																// Данные получены только от МК1
 				// МУК3 получает телеметрию АК от МУК1
-				for (i=0; i < nFrameABCAN-1; i++)	{
+				for (i=0; i < nFrameABCAN; i++)	{
 					Reciev_CanAB[2][i].data64	 = Reciev_CanAB[0][i].data64;	}
 			}
+			updateUAB1 = 0; updateUAk1 = 0;
 		}	
 		else	{
 			if (updateUAB2 & updateUAk2)	{																				// Данные получены от МК2
 				// МУК3 получает телеметрию АК от МУК2
-				for (i=0; i < nFrameABCAN-1; i++)	{
+				for (i=0; i < nFrameABCAN; i++)	{
 					Reciev_CanAB[2][i].data64	 = Reciev_CanAB[1][i].data64;	}
+				updateUAB2 = 0; updateUAk2 = 0;
 			}			
 			else	{																																// Данные не получены ни от МК1 ни от МК2
 				bMakeAK = 1;
@@ -3076,7 +3079,7 @@ void RaschotArrayAE_MUK3 (void)
 		union uBytesFloat16 AK[nAllAE];																					// данные, предназначенные для передачи по CAN.
 		unsigned char dataCAN[160];																							// данные, предназначенные для передачи по CAN.
 		int ib, id, j;
-	
+
 	AEsr.Fdata = (UAB[4].Fdata + UAB[5].Fdata)/(2*72);
 	
 	// Вычисление интегральных параметров
@@ -3113,7 +3116,7 @@ void RaschotArrayAE_MUK3 (void)
 	dataCAN[j] = iminU;			j++;																							// Число байт данных SIZE_PI_AB or SIZE_PKI_AB
 
 	id = j; j=0;
-	for (i=0; i < nFrameABCAN-1; i++)	{
+	for (i=0; i < nFrameABCAN; i++)	{
 		for (ib=0; ib < 8; ib++)	{
 			if (j < id)	Reciev_CanAB[2][i].b[ib]	 = dataCAN[j];
 			else				Reciev_CanAB[2][i].b[ib]	 = 0;
