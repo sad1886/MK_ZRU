@@ -218,9 +218,11 @@ void CAN1_IRQHandler()																														// Получает данн
 								Reciev_CanAB[i][nom].data64	 = mask & (dataH<<32 | MDR_CAN1->CAN_BUF[nbuf_RX].DATAL);
 							break;
 						case CAN_ResCmd:																												// Результат выполнения команд
-							ResultCAN											 = 0x0000ffff & MDR_CAN1->CAN_BUF[nbuf_RX].DATAL;
-							if ((ResultCAN&0x000000ff)==1)	{	ResultCAN = ResultCAN>>8;						// Команда активирована успешно
-								if (ResultCAN == CurrentCmd)	{	bRunCmdCAN=0;	}
+							if (i == iMUK_ZRU)	{
+								ResultCAN											 = 0x0000ffff & MDR_CAN1->CAN_BUF[nbuf_RX].DATAL;
+								if ((ResultCAN&0x000000ff)==1)	{	ResultCAN = ResultCAN>>8;						// Команда активирована успешно
+									if (ResultCAN == CurrentCmd)	{	bRunCmdCAN=0;	}
+								}
 							}
 							break;
 						case CAN_StatErr:																												// Получение данных отказов аппаратуры
@@ -338,9 +340,11 @@ void CAN2_IRQHandler()																														// Получает данн
 							//}
 							break;
 						case CAN_ResCmd:																											// Результат выполнения команд
-							ResultCAN										= 0x0000ffff & MDR_CAN2->CAN_BUF[nbuf_RX].DATAL;
-							if ((ResultCAN&0x000000ff)==1)	{	ResultCAN = ResultCAN>>8;					// Команда активирована успешно
-								if (ResultCAN == CurrentCmd)	{	bRunCmdCAN=0;	}
+							if (i == iMUK_ZRU)	{
+								ResultCAN										= 0x0000ffff & MDR_CAN2->CAN_BUF[nbuf_RX].DATAL;
+								if ((ResultCAN&0x000000ff)==1)	{	ResultCAN = ResultCAN>>8;					// Команда активирована успешно
+									if (ResultCAN == CurrentCmd)	{	bRunCmdCAN=0;	}
+								}
 							}
 							break;
 						case CAN_StatErr:																											// Получение данных отказов аппаратуры
