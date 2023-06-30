@@ -196,12 +196,9 @@ void CAN1_IRQHandler()																														// Получает данн
 
 						// ...............................................................................................
 						switch (adrTx1)	{															
-						case 1:
-						case 2:		i = 0;		break;						// МУК1
-						case 3:
-						case 4:		i = 1;		break;						// МУК2
-						case 5:
-						case 6:		i = 2;		break;						// МУК3
+						case 1:		i = 0;		break;						// МУК1
+						case 3:		i = 1;		break;						// МУК2
+						case 5:		i = 2;		break;						// МУК3
 						}
 						// ...............................................................................................
 						nom--;
@@ -225,9 +222,9 @@ void CAN1_IRQHandler()																														// Получает данн
 								}
 							}
 							break;
-						case CAN_StatErr:																												// Получение данных отказов аппаратуры
-							Reciev_CanErrors.data64			= mask & (dataH<<32 | MDR_CAN1->CAN_BUF[nbuf_RX].DATAL);
-							break;
+//						case CAN_StatErr:																												// Получение данных отказов аппаратуры
+//							Reciev_CanErrors.data64			= mask & (dataH<<32 | MDR_CAN1->CAN_BUF[nbuf_RX].DATAL);
+//							break;
 						default:
 						;
 						}
@@ -317,11 +314,8 @@ void CAN2_IRQHandler()																														// Получает данн
 
 						// ...............................................................................................
 						switch (adrTx1)	{															
-						case 1:
 						case 2:		i = 0;		break;						// МУК1
-						case 3:
 						case 4:		i = 1;		break;						// МУК2
-						case 5:
 						case 6:		i = 2;		break;						// МУК3
 						}
 						// ...............................................................................................
@@ -347,9 +341,9 @@ void CAN2_IRQHandler()																														// Получает данн
 								}
 							}
 							break;
-						case CAN_StatErr:																											// Получение данных отказов аппаратуры
-							Reciev_CanErrors.data64			= mask & (dataH<<32 | MDR_CAN2->CAN_BUF[nbuf_RX].DATAL);
-							break;
+//						case CAN_StatErr:																											// Получение данных отказов аппаратуры
+//							Reciev_CanErrors.data64			= mask & (dataH<<32 | MDR_CAN2->CAN_BUF[nbuf_RX].DATAL);
+//							break;
 						default:
 						;
 						}
