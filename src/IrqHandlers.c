@@ -32,18 +32,16 @@ extern const float	Uref[3];																							// (В) Прецизионно
 extern volatile unsigned char bRunCmdCAN, CurrentCmd;											// Флаг отправки команды по CAN
 extern uint32_t ResultCAN;																								// Результат выполнения команд Вкл_РС, Откл_РС, Байт ошибок БЭ  по CAN
 
-//extern volatile unsigned char bReciev_CanErrors;													// Флаги принятых фреймов телеметрии отказов БЭ
-//extern volatile unsigned char bReciev_CanDatch[nFrameDatchCAN];						// Флаги принятых фреймов телеметрии датчиков
-//extern volatile unsigned char bReciev_CanAB[nFrameABCAN];									// Флаги принятых фреймов телеметрии АБ
+extern volatile unsigned char bReciev_CanErrors;													// Флаги принятых фреймов телеметрии отказов БЭ
+extern volatile unsigned char bReciev_CanDatch[nFrameDatchCAN];						// Флаги принятых фреймов телеметрии датчиков
+extern volatile unsigned char bReciev_CanAB[nFrameABCAN];									// Флаги принятых фреймов телеметрии АБ
 
-extern int nfRec_CanDatch1[numMUKs_BE],
-					 nfRec_CanDatch2[numMUKs_BE];																		// Маска принятых фреймов телеметрии датчиков 0x3ff
-extern int nfRec_CanAK1[numMUKs_BE],
-					 nfRec_CanAK2[numMUKs_BE];																			// Маска принятых фреймов телеметрии АК 0xfffff
+extern int nfRec_CanDatch1, nfRec_CanDatch2;															// Маска принятых фреймов телеметрии датчиков 0x3ff
+extern int nfRec_CanAK1, nfRec_CanAK2;																		// Маска принятых фреймов телеметрии АК 0xfffff
 
 extern volatile union uBytes64 Reciev_CanErrors;													// Телеметрия отказов БЭ
-extern volatile union uBytes64 Reciev_CanDatch[numMUKs_BE][nFrameDatchCAN];						// Телеметрия датчиков
-extern volatile union uBytes64 Reciev_CanAB[numMUKs_BE][nFrameABCAN];									// Телеметрия АБ
+extern volatile union uBytes64 Reciev_CanDatch[nFrameDatchCAN];						// Телеметрия датчиков
+extern volatile union uBytes64 Reciev_CanAB[nFrameABCAN];									// Телеметрия АБ
 
 extern volatile unsigned char bNoWrkCAN;																	// 1 - CAN не работает, 0 - CAN  работает
 
@@ -171,21 +169,23 @@ void CAN1_IRQHandler()																														// Получает данн
 				cod		 = 0x0000000f & RecievCanID >> 12;																		// Код пакета
 				adrTx1 = 0x0000000f & RecievCanID >> 20;																		// Адрес узла-передатчика пакета (МУК1..3 соотв 1,3,5)
 	
-				//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+//				if ((adrTx1+6)==AdrCAN1_ZRU)																								// Для этого МУКа
+//					{	}
 				if (adrTx1 < 7)	{		// обслужить запросы только 1..6 адрес МУК1..3 БЭ
 
 					cntSec_noCAN[adrTx1-1]=0;		bNoWrkCAN &= ~(1<<(adrTx1-1));
 					
 					bGet=0;
 					if (nMUK_ZRU==nMUK3_ZRU)	{																								// Только для МУК3
-						if ((adrTx1== AdrMUK3_BE)&&(cod!=2))	bGet=1;														// Принять пакет 1,3,4 от МУК3				 
-						if ((adrTx1 < AdrMUK3_BE)&&((cod==1)||(cod==2)))	bGet=1;								// Принять пакет 1,2   от МУК1, МУК2	 
+						if ((adrTx1== AdrMUK3_BE)&&(cod!=2))	bGet=1;														// Принять пакет 1,3 от МУК3				 
+						if ((adrTx1 < AdrMUK3_BE)&&(cod==2))	bGet=1;														// Принять пакет 2   от МУК1, МУК2	 
 					}
 					else	{
-						if ((adrTx1+6)==AdrCAN1_ZRU)	bGet=1;																		// Для этого МУКа
+						if ((adrTx1+6)==AdrCAN1_ZRU)	bGet=1;																	// Для этого МУКа
 					}
 
 					// ...............................................................................................
+					//if (((adrTx1+6)==AdrCAN1_ZRU)&&(bGet))
 					if (bGet)
 					{
 						if (nom==nFrame)	{
@@ -195,41 +195,35 @@ void CAN1_IRQHandler()																														// Получает данн
 						}	else	mask = 0xffffffffffffffff;
 
 						// ...............................................................................................
-						switch (adrTx1)	{															
-						case 1:		i = 0;		break;						// МУК1
-						case 3:		i = 1;		break;						// МУК2
-						case 5:		i = 2;		break;						// МУК3
-						}
-						// ...............................................................................................
 						nom--;
 
 						dataH	= MDR_CAN1->CAN_BUF[nbuf_RX].DATAH;
 					
 						switch (cod)	{
 						case CAN_PI_Datch:																											// Получение телеметрии ДД, ДТ
-							nfRec_CanDatch1[i] |= 1<<nom;
-							Reciev_CanDatch[i][nom].data64 = mask & (dataH<<32 | MDR_CAN1->CAN_BUF[nbuf_RX].DATAL);
+							nfRec_CanDatch1 |= 1<<nom;
+							Reciev_CanDatch[nom].data64	= mask & (dataH<<32 | MDR_CAN1->CAN_BUF[nbuf_RX].DATAL);
 							break;
 						case CAN_PI_AK:																													// Получение телеметрии аккумуляторов 
-								nfRec_CanAK1[i] |= 1<<nom;
-								Reciev_CanAB[i][nom].data64	 = mask & (dataH<<32 | MDR_CAN1->CAN_BUF[nbuf_RX].DATAL);
+							//if ((adrTx1+6) != AdrMUK3_ZRU)	{	
+								nfRec_CanAK1 |= 1<<nom;
+								Reciev_CanAB[nom].data64			= mask & (dataH<<32 | MDR_CAN1->CAN_BUF[nbuf_RX].DATAL);
+							//}
 							break;
 						case CAN_ResCmd:																												// Результат выполнения команд
-							if (i == iMUK_ZRU)	{
-								ResultCAN											 = 0x0000ffff & MDR_CAN1->CAN_BUF[nbuf_RX].DATAL;
-								if ((ResultCAN&0x000000ff)==1)	{	ResultCAN = ResultCAN>>8;						// Команда активирована успешно
-									if (ResultCAN == CurrentCmd)	{	bRunCmdCAN=0;	}
-								}
+							ResultCAN														= 0x0000ffff & MDR_CAN1->CAN_BUF[nbuf_RX].DATAL;
+							if ((ResultCAN&0x000000ff)==1)	{	ResultCAN = ResultCAN>>8;						// Команда активирована успешно
+								if (ResultCAN == CurrentCmd)	{	bRunCmdCAN=0;	}
 							}
 							break;
-//						case CAN_StatErr:																												// Получение данных отказов аппаратуры
-//							Reciev_CanErrors.data64			= mask & (dataH<<32 | MDR_CAN1->CAN_BUF[nbuf_RX].DATAL);
-//							break;
+						case CAN_StatErr:																												// Получение данных отказов аппаратуры
+							Reciev_CanErrors.data64			= mask & (dataH<<32 | MDR_CAN1->CAN_BUF[nbuf_RX].DATAL);
+							break;
 						default:
 						;
 						}
 						MDR_CAN1->CAN_BUF[nbuf_RX].DATAL=0;		MDR_CAN1->CAN_BUF[nbuf_RX].DATAH=0;
-					}	// if (bGet)
+					}	// if ((adrTx1+6)==AdrMUK_ZRU)
 				}	// if ((adrTx1<7))
 					
 				//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -289,7 +283,7 @@ void CAN2_IRQHandler()																														// Получает данн
 				nom		 = 0x0000003f & RecievCanID;																				// номер фрейма
 				nFrame = 0x0000003f & RecievCanID >> 6;																		// Число фреймов в пакете 
 				cod		 = 0x0000000f & RecievCanID >> 12;																	// Код пакета
-				adrTx2 = 0x0000000f & RecievCanID >> 20;																	// Адрес узла-передатчика пакета (МУК1..3 соотв 2,4,6)
+				adrTx2 = 0x0000000f & RecievCanID >> 20;																	// Адрес узла-передатчика пакета (МУК1..3 соотв 1..3)
 	
 				if (adrTx2 < 7)	{																													// обслужить запросы только 1..6 адрес МУК1..3 БЭ
 
@@ -298,12 +292,13 @@ void CAN2_IRQHandler()																														// Получает данн
 					bGet=0;
 					if (nMUK_ZRU==nMUK3_ZRU)	{																							// Только для МУК3
 						if ((adrTx2==(AdrMUK3_BE+1))&&(cod!=2))	bGet=1;												// Принять пакет 1,3 от МУК3				 
-						if ((adrTx2 < AdrMUK3_BE	 )&&((cod==1)||(cod==2)))	bGet=1;						// Принять пакет 1,2 от МУК1, МУК2	 
+						if ((adrTx2 < AdrMUK3_BE	 )&&(cod==2))	bGet=1;												// Принять пакет 2   от МУК1, МУК2	 
 					}
 					else	{
 						if ((adrTx2+6)==AdrCAN2_ZRU)	bGet=1;																	// Для этого МУКа
 					}
 
+					//if (((adrTx2+6)==AdrCAN2_ZRU)&&(bGet))																	// Для этого МУКа
 					if (bGet)																																// Принять пакет
 					{
 						if (nom==nFrame)	{
@@ -313,42 +308,35 @@ void CAN2_IRQHandler()																														// Получает данн
 						}	else	mask = 0xffffffffffffffff;
 
 						// ...............................................................................................
-						switch (adrTx1)	{															
-						case 2:		i = 0;		break;						// МУК1
-						case 4:		i = 1;		break;						// МУК2
-						case 6:		i = 2;		break;						// МУК3
-						}
-						// ...............................................................................................
 						nom--;
 
 						dataH	= MDR_CAN2->CAN_BUF[nbuf_RX].DATAH;
 					
 						switch (cod)	{
 						case CAN_PI_Datch:																										// Получение телеметрии ДД, ДТ
-							nfRec_CanDatch2[i] |= 1<<nom;
-							Reciev_CanDatch[i][nom].data64	= mask & (dataH<<32 | MDR_CAN2->CAN_BUF[nbuf_RX].DATAL);
+							nfRec_CanDatch2 |= 1<<nom;
+							Reciev_CanDatch[nom].data64	= mask & (dataH<<32 | MDR_CAN2->CAN_BUF[nbuf_RX].DATAL);
 							break;
 						case CAN_PI_AK:																												// Получение телеметрии аккумуляторов 
-								nfRec_CanAK2[i] |= 1<<nom;
-								Reciev_CanAB[i][nom].data64	= mask & (dataH<<32 | MDR_CAN2->CAN_BUF[nbuf_RX].DATAL);
+							//if ((adrTx2+6) != AdrMUK3_ZRU)	{	
+								nfRec_CanAK2 |= 1<<nom;
+								Reciev_CanAB[nom].data64	= mask & (dataH<<32 | MDR_CAN2->CAN_BUF[nbuf_RX].DATAL);
 							//}
 							break;
 						case CAN_ResCmd:																											// Результат выполнения команд
-							if (i == iMUK_ZRU)	{
-								ResultCAN										= 0x0000ffff & MDR_CAN2->CAN_BUF[nbuf_RX].DATAL;
-								if ((ResultCAN&0x000000ff)==1)	{	ResultCAN = ResultCAN>>8;					// Команда активирована успешно
-									if (ResultCAN == CurrentCmd)	{	bRunCmdCAN=0;	}
-								}
+							ResultCAN										= 0x0000ffff & MDR_CAN2->CAN_BUF[nbuf_RX].DATAL;
+							if ((ResultCAN&0x000000ff)==1)	{	ResultCAN = ResultCAN>>8;					// Команда активирована успешно
+								if (ResultCAN == CurrentCmd)	{	bRunCmdCAN=0;	}
 							}
 							break;
-//						case CAN_StatErr:																											// Получение данных отказов аппаратуры
-//							Reciev_CanErrors.data64			= mask & (dataH<<32 | MDR_CAN2->CAN_BUF[nbuf_RX].DATAL);
-//							break;
+						case CAN_StatErr:																											// Получение данных отказов аппаратуры
+							Reciev_CanErrors.data64			= mask & (dataH<<32 | MDR_CAN2->CAN_BUF[nbuf_RX].DATAL);
+							break;
 						default:
 						;
 						}
 						MDR_CAN2->CAN_BUF[nbuf_RX].DATAL=0;		MDR_CAN2->CAN_BUF[nbuf_RX].DATAH=0;
-					}	// if (bGet)
+					}	// if ((adrTx2+6)==AdrMUK_ZRU)
 				}	// if ((adrTx2<7))
 					
 				//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

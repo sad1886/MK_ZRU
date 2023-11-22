@@ -103,8 +103,8 @@ volatile unsigned char bRunCmdCAN, CurrentCmd, CurrentDlc;		// Флаг отпр
 uint32_t ResultCAN;																						// Результат выполнения команд Вкл_РС, Откл_РС
 
 volatile union uBytes64 Reciev_CanErrors;											// Телеметрия отказов БЭ
-volatile union uBytes64 Reciev_CanDatch[numMUKs_BE][nFrameDatchCAN];			// Телеметрия датчиков от 3-х МУКов БЭ
-volatile union uBytes64 Reciev_CanAB[numMUKs_BE][nFrameABCAN];						// Телеметрия АБ от 3-х МУКов БЭ
+volatile union uBytes64 Reciev_CanDatch[nFrameDatchCAN];			// Телеметрия датчиков
+volatile union uBytes64 Reciev_CanAB[nFrameABCAN];						// Телеметрия АБ
 
 //--------------------------- переменные времени ------------------------------------------------------------------------------
 extern tTime	sTime;
@@ -119,7 +119,7 @@ extern unsigned char set100ms, yes100ms;
 
 //--------------------------- для алгоритма переменные ------------------------------------------------------------------------------
 extern unsigned char mode_Razryad; //если не 0, значит мы находимся в режиме разряда (ток разряда больше нуля)
-extern unsigned char mode_Zaryad;  //если не 0, значит мы находимся в режиме заряда (ток заряда больше нуля) 
+extern unsigned char mode_Zaryad; //если не 0, значит мы находимся в режиме заряда (ток заряда больше нуля) 
 
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 // Задержка
@@ -375,12 +375,11 @@ void CAN_SendConf_1 (unsigned char confcmd)
 	MDR_CAN1->CAN_BUF_FILTER[lbuf_TX].MASK=0;		MDR_CAN1->CAN_BUF_FILTER[lbuf_TX].FILTER =0;
 	// заполним буфер
  	MDR_CAN1->CAN_BUF[lbuf_TX].ID = nPrior_ZRU<< 24 | AdrCAN1_ZRU<< 20 | nMUKs_BE<< 16 | CAN_MSG_Ok<< 12 | 1<< 6 | 1;
-	MDR_CAN1->CAN_BUF[lbuf_TX].DLC = (1 << CAN_IDE) | (1<< CAN_SSR) | (1<< CAN_R1) | 5;								// Длина передаваемых данных в пакете (в байтах)
+	MDR_CAN1->CAN_BUF[lbuf_TX].DLC = (1 << CAN_IDE) | (1<< CAN_SSR) | (1<< CAN_R1) | 1;								// Длина передаваемых данных в пакете (в байтах)
 
-//	MDR_CAN1->CAN_BUF[lbuf_TX].DATAL = confcmd | ((stat3[iMUK_ZRU] & vklZRU)<<3);																												// ((stat3[iMUK_ZRU] & vklZRU)<<3) = 0x10
-	confcmd = confcmd | ((stat3[iMUK_ZRU] & vklZRU)<<3);																												// ((stat3[iMUK_ZRU] & vklZRU)<<3) = 0x10
-	MDR_CAN1->CAN_BUF[lbuf_TX].DATAL = (aIrazr.b[0] <<24)|(aIzar.b[1]<<16)|(aIzar.b[0] <<8)|confcmd;	// Четвёртый..первый байт в пакете
-	MDR_CAN1->CAN_BUF[lbuf_TX].DATAH =  aIrazr.b[1];																									// Восьмой..пятый байт в пакете
+	MDR_CAN1->CAN_BUF[lbuf_TX].DATAL = confcmd | ((stat3[iMUK_ZRU] & vklZRU)<<3);																												// ((stat3[iMUK_ZRU] & vklZRU)<<3) = 0x10
+//	MDR_CAN1->CAN_BUF[lbuf_TX].DATAL = (aIrazr.b[0] <<24)|(aIzar.b[1]<<16)|(aIzar.b[0] <<8)|confcmd;	// Четвёртый..первый байт в пакете
+//	MDR_CAN1->CAN_BUF[lbuf_TX].DATAH =  aIrazr.b[1];																									// Восьмой..пятый байт в пакете
 
 //	MDR_CAN1->CAN_BUF[lbuf_TX].DATAL = confcmd;																												// Код подтверждаемой команды
 //	MDR_CAN1->CAN_BUF[lbuf_TX].DATAH = 0;																															// 
@@ -400,12 +399,11 @@ void CAN_SendConf_2(unsigned char confcmd)
 	MDR_CAN2->CAN_BUF_FILTER[lbuf_TX].MASK=0;		MDR_CAN2->CAN_BUF_FILTER[lbuf_TX].FILTER =0;
 	// заполним буфер
  	MDR_CAN2->CAN_BUF[lbuf_TX].ID = nPrior_ZRU<< 24 | (AdrCAN2_ZRU)<< 20 | nMUKs_BE<< 16 | CAN_MSG_Ok<< 12 | 1<< 6 | 1;
-	MDR_CAN2->CAN_BUF[lbuf_TX].DLC = (1 << CAN_IDE) | (1<< CAN_SSR) | (1<< CAN_R1) | 5;								// Длина передаваемых данных в пакете (в байтах)
+	MDR_CAN2->CAN_BUF[lbuf_TX].DLC = (1 << CAN_IDE) | (1<< CAN_SSR) | (1<< CAN_R1) | 1;								// Длина передаваемых данных в пакете (в байтах)
 
-//	MDR_CAN2->CAN_BUF[lbuf_TX].DATAL = confcmd | ((stat3[iMUK_ZRU] & vklZRU)<<3);												//
-	confcmd = confcmd | ((stat3[iMUK_ZRU] & vklZRU)<<3);												//
-	MDR_CAN2->CAN_BUF[lbuf_TX].DATAL = (aIrazr.b[0] <<24)|(aIzar.b[1]<<16)|(aIzar.b[0] <<8)|confcmd;	// Четвёртый..первый байт в пакете
-	MDR_CAN2->CAN_BUF[lbuf_TX].DATAH =  aIrazr.b[1];																									// Восьмой..пятый байт в пакете
+	MDR_CAN2->CAN_BUF[lbuf_TX].DATAL = confcmd | ((stat3[iMUK_ZRU] & vklZRU)<<3);												//
+//	MDR_CAN2->CAN_BUF[lbuf_TX].DATAL = (aIrazr.b[0] <<24)|(aIzar.b[1]<<16)|(aIzar.b[0] <<8)|confcmd;	// Четвёртый..первый байт в пакете
+//	MDR_CAN2->CAN_BUF[lbuf_TX].DATAH =  aIrazr.b[1];																									// Восьмой..пятый байт в пакете
 
 //	MDR_CAN2->CAN_BUF[lbuf_TX].DATAL = confcmd;																												// Код подтверждаемой команды
 //	MDR_CAN2->CAN_BUF[lbuf_TX].DATAH = 0;																															// 
