@@ -78,8 +78,8 @@ volatile float	P = 0,																							// среднее значение �
 								Umin_ak = -0.7,																			// минимальное значение напряжения АЭ
 								Umax_ak = -0.7;																			// максимальное значение напряжения АЭ
 
-volatile float	P_array[5], T_array[5];
-volatile float	Pmax, Pmin, Tmax, Tmin;
+volatile float	P_array[5], T_array[5], Uak_array[72];
+volatile float	Pmax = 0, Pmin = 0, Tmax = 0, Tmin = 0;
 
 //------------ для обмена и синхронизации МК-ов ---------------------------------------------------------------------------
 unsigned char stat1[3]={0,0,0},
@@ -279,6 +279,53 @@ unsigned char bReadyWrk, cntReadyWrk;			// Разрешение на ответ�
 unsigned int MajorStatZRU(unsigned char * stat);
 
 //-------------------------------------------------------------------------------------------------------------------------
+//функция находит в массиве нужный параметр, при этом номер фрейма (frame_number) и номер байта (byte_number) должны быть указаны в соответствии с протоколом обмена CAN 
+//то есть индек в массивах начинается с 1, а не с 0. Вычитание происходит внутри функции.
+float GetParamFromCANFrame(volatile union uBytes64 ArrayFrames[], unsigned int frame_number, unsigned int byte_number)
+{
+	union uBytesFloat16 tmp;
+	
+	tmp.b[0] = ArrayFrames[frame_number-1].b[byte_number-1];
+	tmp.b[1] = ArrayFrames[frame_number-1].b[byte_number];
+	
+	return tmp.Fdata;
+}
+//-------------------------------------------------------------------------------------------------------------------------
+//функция получает из КАНовских фреймов необходимые нам параметры
+void GetDataFromCan() 
+{	
+	unsigned int ind, fr;
+	//пять давлений
+	P_array[0] = GetParamFromCANFrame(Reciev_CanDatch, 3, 7);
+	P_array[1] = GetParamFromCANFrame(Reciev_CanDatch, 4, 1);
+	P_array[2] = GetParamFromCANFrame(Reciev_CanDatch, 4, 3);
+	P_array[3] = GetParamFromCANFrame(Reciev_CanDatch, 4, 5);
+	P_array[4] = GetParamFromCANFrame(Reciev_CanDatch, 4, 7);
+	
+	//пять температур
+	T_array[0] = GetParamFromCANFrame(Reciev_CanDatch, 5, 1);
+	T_array[1] = GetParamFromCANFrame(Reciev_CanDatch, 5, 3);
+	T_array[2] = GetParamFromCANFrame(Reciev_CanDatch, 5, 5);
+	T_array[3] = GetParamFromCANFrame(Reciev_CanDatch, 5, 7);
+	T_array[4] = GetParamFromCANFrame(Reciev_CanDatch, 6, 1);	
+	
+	//72 напряжения на АК
+	ind = 0; fr = 2;
+	Uak_array[ind++] = GetParamFromCANFrame(Reciev_CanAB, fr, 5); //АК1
+	Uak_array[ind++] = GetParamFromCANFrame(Reciev_CanAB, fr, 7);	//АК2
+	for (fr = 3; fr <=19 ; fr++)
+	{
+		Uak_array[ind++] = GetParamFromCANFrame(Reciev_CanAB, fr, 1);		
+		Uak_array[ind++] = GetParamFromCANFrame(Reciev_CanAB, fr, 3);	
+		Uak_array[ind++] = GetParamFromCANFrame(Reciev_CanAB, fr, 5);	
+		Uak_array[ind++] = GetParamFromCANFrame(Reciev_CanAB, fr, 7);	
+	}
+	Uak_array[ind++] = GetParamFromCANFrame(Reciev_CanAB, 20, 1); //АК71
+	Uak_array[ind++] = GetParamFromCANFrame(Reciev_CanAB, 20, 3);	//АК72
+	
+}
+
+//-------------------------------------------------------------------------------------------------------------------------
 void fDataConvert_(void)
 {	int j,adj,ak,fr;
 /*
@@ -429,6 +476,8 @@ void GetData(void)
 	Umax_ak = GetParam(0, 2);
 	Umin_ak = GetParam(0, 3);																							// [3] минимальное значение напряжения АЭ
 	dUak = Umax_ak - Umin_ak;																							//	Разница	Umax_ak - Umin_ak
+	
+	
 	
 }
 
@@ -1823,7 +1872,23 @@ void MakePack3(void)	// Заполнение пакета Краткой тел�
 								((bNoWrkCAN << 2) & 0x10)|															// 2->4	Состояние основного  канала связи CAN с МК2 БЭ	
 								((bNoWrkCAN << 5) & 0x20);															// 0->5	Состояние основного  канала связи CAN с МК1 БЭ	
 	
-	
+	//5 давлений
+	PackRs3[13] = 1;
+	PackRs3[14] = 2;
+	PackRs3[15] = 3;
+	PackRs3[16] = 4;
+	PackRs3[17] = 5;
+	//5 температур
+	PackRs3[18] = 1;
+	PackRs3[19] = 2;
+	PackRs3[20] = 3;
+	PackRs3[21] = 4;
+	PackRs3[22] = 5;
+	//2 давления, 2 температуры
+	PackRs3[23] = 1;
+	PackRs3[24] = 2;
+	PackRs3[25] = 3;
+	PackRs3[26] = 4;
 
 //	MakePackTst(PackRs3, lngPackRs3);
 
@@ -3053,9 +3118,6 @@ int main(void)
 
 	PvzRas = 45;
 	P0_Ras = 14;
-	
-
-
 
 	while (1)												
 	{
@@ -3077,6 +3139,7 @@ int main(void)
 			if (!mode)	{	mode = Init_Run;	}																	// Переход в рабочий режим при старте программы
 			// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .	
 			if	((updateD1)&&(updateD2))	{																		// Получены все фрейимы пакета1 и пакета2
+				GetDataFromCan(); 
 				fDataConvert_();
 				GetData();																											// Получить значения P, T, Usr, АБ из БЭ
 				MakePack3();	MakePack4();																			// if ((!bReqBCU[0])&&(!bReqBCU[1]))	{	MakePack3();	MakePack4(); }
