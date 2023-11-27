@@ -52,8 +52,8 @@
 // Размеры пакетов, отправляемые ЗРУ по RS485 
 #define lngPackRs1					19														// телеметрия ЗРУ
 #define lngPackRs2					6															// Ответ на пакет 2
-#define lngPackRs3					15														// краткая телеметрия БЭ
-#define lngPackRs4					88														// полная телеметрия БЭ
+#define lngPackRs3					29														// краткая телеметрия БЭ
+#define lngPackRs4					90														// полная телеметрия БЭ
 #define lngPackRs5					6															// Ответ на пакет 5
 #define lngPackRs6					36														// контроль уставок ЗРУ 
 #define lngPackRs7					10														// запоминаемые для восстановления данные в БВС 
