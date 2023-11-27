@@ -109,7 +109,6 @@ extern volatile int iReadAdc;																				// Счётчик измере�
 extern volatile int NumReadAdc;																			// Число достоверных значений измерения АЦП текущего канала
 extern volatile uint32_t cntReadADC;																// Счётчик циклов чтения АЦП
 extern float Vals_ZRU[nParams];																			// Массив реальных измеренных значений параметров ЗРУ
-extern float tVals_ZRU[11];																					// Массив тестовых значений параметров ЗРУ
 
 extern float aI_razr, aI_razrOld, aI_zar;
 extern float vU_zru, vU_zru_Old;;	
