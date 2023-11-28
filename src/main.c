@@ -285,7 +285,7 @@ unsigned int MajorStatZRU(unsigned char * stat);
 
 //-------------------------------------------------------------------------------------------------------------------------
 //функция преобразует число с плавающей точкой в байт для последующей отправки по протоколу RS-485
-unsigned char CreateByteFromParam(float fv, unsigned int x0, unsigned int z)
+unsigned char CreateByteFromParam(float fv, float x0, float z)
 {	
 	unsigned char b;	int tmp;
 	if (fv >= x0)		
@@ -1926,13 +1926,10 @@ unsigned char fByte3(float fv, int ind)
 //-------------------------------------------------------------------------------------------------------------------------
 void MakePack3(void)	// Заполнение пакета Краткой телем. данными	
 { 
-/*	
-	
-	if (mode_Razryad) {	fV_AB[76].Fdata += aI_razr*0.0;	}
-	if (mode_Zaryad)  {	fV_AB[76].Fdata -= aI_zar *0.0;	}
-*/
-	if (stat1[iMUK_ZRU] & bPC)		  {	fV_AB[76].Fdata += 0.1;	}   //Коррекция напряжения 72-го АК АБ ДЛЯ БЭ
+// нужна ли эта корректировка?
+//	if (stat1[iMUK_ZRU] & bPC)		  {	fV_AB[76].Fdata += 0.1;	}   //Коррекция напряжения 72-го АК АБ ДЛЯ БЭ
 
+	
 	PackRs3[4]  = fByte3(Uab, 0);																					// Напряжение АБ, В
 	PackRs3[5]  = fByte3(P, 1);																						// Текущее значение среднего давления в НВА, кгс/см2
 	PackRs3[6]  = fByte3(UsrAk, 2);																				// Среднее значение напряжения по 72 АК, В
