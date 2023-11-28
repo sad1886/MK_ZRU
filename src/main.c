@@ -79,7 +79,11 @@ volatile float	P = 0,																							// среднее значение �
 								Umax_ak = -0.7;																			// максимальное значение напряжения АЭ
 
 volatile float	P_array[5], T_array[5], Uak_array[72];
-volatile float	Pmax = 0, Pmin = 0, Tmax = 0, Tmin = 0;
+volatile float	Pmax = 0, 																					// Максимальное давление
+								Pmin = 0, 																					// Минимальное давление
+								dT = 0,																							// Разница максимального и минимального давления ДТ
+								Tmax = 0, 																					// Максимальная температура
+								Tmin = 0;																						// Минимальная температура
 
 //------------ для обмена и синхронизации МК-ов ---------------------------------------------------------------------------
 unsigned char stat1[3]={0,0,0},
@@ -278,6 +282,21 @@ unsigned char bReadyWrk, cntReadyWrk;			// Разрешение на ответ�
 // Подготовка мажоритированных данных для телеметрии
 unsigned int MajorStatZRU(unsigned char * stat);
 
+
+//-------------------------------------------------------------------------------------------------------------------------
+//функция преобразует число с плавающей точкой в байт для последующей отправки по протоколу RS-485
+unsigned char CreateByteFromParam(float fv, unsigned int x0, unsigned int z)
+{	
+	unsigned char b;	int tmp;
+	if (fv >= x0)		
+	{
+		tmp = (int) ((fv-x0)/z + 0.5);
+		if (tmp>255)	b = 255;	else	b = tmp;	
+	}	
+	else	b = 0;
+
+	return b;
+}	
 //-------------------------------------------------------------------------------------------------------------------------
 //функция находит в массиве нужный параметр, при этом номер фрейма (frame_number) и номер байта (byte_number) должны быть указаны в соответствии с протоколом обмена CAN 
 //то есть индек в массивах начинается с 1, а не с 0. Вычитание происходит внутри функции.
@@ -294,7 +313,14 @@ float GetParamFromCANFrame(volatile union uBytes64 ArrayFrames[], unsigned int f
 //функция получает из КАНовских фреймов необходимые нам параметры
 void GetDataFromCan() 
 {	
+	unsigned int i;
 	unsigned int ind, fr;
+	float Uab1, Uab2, sum;
+	
+	//два напряжения Uab;
+	Uab1 = GetParamFromCANFrame(Reciev_CanDatch, 8, 7);
+	Uab2 = GetParamFromCANFrame(Reciev_CanDatch, 9, 1);
+	
 	//пять давлений
 	P_array[0] = GetParamFromCANFrame(Reciev_CanDatch, 3, 7);
 	P_array[1] = GetParamFromCANFrame(Reciev_CanDatch, 4, 1);
@@ -323,6 +349,56 @@ void GetDataFromCan()
 	Uak_array[ind++] = GetParamFromCANFrame(Reciev_CanAB, 20, 1); //АК71
 	Uak_array[ind++] = GetParamFromCANFrame(Reciev_CanAB, 20, 3);	//АК72
 	
+	//состояние РС
+	if (Reciev_CanDatch[9].b[2])	stat1[iMUK_ZRU] |= bPC;
+	else													stat1[iMUK_ZRU] &= ~bPC;	
+	
+	
+	//расчеты
+	//напряжение Uаб
+	Uab = (Uab1 + Uab2)/2;
+	
+	//давление
+	P = 0; Pmax = 0; Pmin = 0; dP = 0;
+	sum = 0;
+	for (i=0; i <= 4; i++)
+	{
+		if(P_array[i] > Pmax) 
+			Pmax = P_array[i];
+		if(P_array[i] < Pmin) 
+			Pmin = P_array[i];
+		sum += P_array[i];
+	}
+	P = sum/5;
+	dP = Pmax - Pmin;
+	
+	//температура
+	T = 0; Tmax = 0; Tmin = 0; dT = 0;
+	sum = 0;
+	for (i=0; i <= 4; i++)
+	{
+		if(T_array[i] > Tmax) 
+			Tmax = T_array[i];
+		if(T_array[i] < Tmin) 
+			Tmin = T_array[i];
+		sum += T_array[i];
+	}
+	T = sum/5;
+	dT = Tmax - Tmin;	
+	
+	//напряжение АК
+	UsrAk = 0; Umax_ak = 0; Umin_ak = 0; dUak = 0;
+	sum = 0;
+	for (i=0; i <= 72; i++)
+	{
+		if(Uak_array[i] > Umax_ak) 
+			Umax_ak = Uak_array[i];
+		if(Uak_array[i] < Umin_ak) 
+			Umin_ak = Uak_array[i];
+		sum += Uak_array[i];
+	}
+	UsrAk = sum/72;
+	dUak = Umax_ak - Umin_ak;
 }
 
 //-------------------------------------------------------------------------------------------------------------------------
@@ -3139,9 +3215,7 @@ int main(void)
 			if (!mode)	{	mode = Init_Run;	}																	// Переход в рабочий режим при старте программы
 			// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .	
 			if	((updateD1)&&(updateD2))	{																		// Получены все фрейимы пакета1 и пакета2
-				GetDataFromCan(); 
-				fDataConvert_();
-				GetData();																											// Получить значения P, T, Usr, АБ из БЭ
+				GetDataFromCan(); 																							// Забираем из пакетов нужную нам телеметрию
 				MakePack3();	MakePack4();																			// if ((!bReqBCU[0])&&(!bReqBCU[1]))	{	MakePack3();	MakePack4(); }
 				cnt=0;	updateD1=0;		updateD2=0;
 				if (mode == CAN_not_working)	{mode = Init_Run;}
