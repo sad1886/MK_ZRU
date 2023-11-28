@@ -1953,36 +1953,27 @@ void ClearPack3(void)	// Очистить пакет Краткой телем.
 
 //-------------------------------------------------------------------------------------------------------------------------
 void MakePack4(void)	// Заполнение пакета Полной телем. данными
-{	
-	
+{		
 	for(i=4; i < 76; i++)
 	{
 		PackRs4[i] = CreateByteFromParam(Uak_array[i-4], -1, 0.014);
 	}
 	
-	PackRs4[86] = CreateByteFromParam(PvzRas, 38, 0.12);
-	PackRs4[87] = CreateByteFromParam(P0_Ras, 0, 0.08);
+	PackRs4[76] = CreateByteFromParam(PvzRas, 38, 0.12);
+	PackRs4[77] = CreateByteFromParam(P0_Ras, 0, 0.08);
 	
 	checksumCalc = Crc16(PackRs4, lngPackRs4-2);													// Выисление контрольной суммы
 	*(PackRs4+lngPackRs4-1) =  checksumCalc;	
 	*(PackRs4+lngPackRs4-2) =  checksumCalc >> 8;													// Добавить контрольную сумму
-
-//	for(i=4; i < lngPackRs4; i++)		{ PackRs4_2[i] = PackRs4[i];}
 }
 
 //-------------------------------------------------------------------------------------------------------------------------
 void InitPack4(void)	// Заполнение пакета Полной телем. начальными данными
-{	int j;
-	
+{	
 	for(i=4; i < 76; i++)		{
 		PackRs4[i] = 0;																											//	Напряжение 1..72-ого НВА НВАБ БЭ
-		//PackRs4[i] = (int)((0.7-x0_p4[0])/z_p4[0]+0.5);										//	Напряжение 1..72-ого НВА НВАБ БЭ
 	}
-	j=i;
-	for(i=0; i < 10; i++)		{
-		PackRs4[j] = 0;	j++; 																								//	значение ДД1..5	значение ДT1..5
-	}
-//	MakePackTst(PackRs4, lngPackRs4);
+
 	checksumCalc = Crc16(PackRs4, lngPackRs4-2);													// Выисление контрольной суммы
 	*(PackRs4+lngPackRs4-1) =  checksumCalc;	
 	*(PackRs4+lngPackRs4-2) =  checksumCalc >> 8;													// Добавить контрольную сумму
@@ -1993,8 +1984,8 @@ void ClearPack4(void)	// Заполнение пакета Полной теле
 {	int i;
 	for(i=4; i < lngPackRs4; i++)		{	PackRs4[i] = 0;	}										// Напряжение 1..72-ого НВА НВАБ БЭ и т.д.
 
-	PackRs4[86] = CreateByteFromParam(PvzRas, 38, 0.12);
-	PackRs4[87] = CreateByteFromParam(P0_Ras, 0, 0.08);
+	PackRs4[76] = CreateByteFromParam(PvzRas, 38, 0.12);
+	PackRs4[77] = CreateByteFromParam(P0_Ras, 0, 0.08);
 	
 	checksumCalc = Crc16(PackRs4, lngPackRs4-2);													// Выисление контрольной суммы
 	*(PackRs4+lngPackRs4-1) =  checksumCalc;	
