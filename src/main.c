@@ -359,7 +359,7 @@ void GetDataFromCan()
 	Uab = (Uab1 + Uab2)/2;
 	
 	//давление
-	P = 0; Pmax = 0; Pmin = 0; dP = 0;
+	P = 0; Pmax = P_array[0]; Pmin = P_array[0]; dP = 0;
 	sum = 0;
 	for (i=0; i <= 4; i++)
 	{
@@ -373,7 +373,7 @@ void GetDataFromCan()
 	dP = Pmax - Pmin;
 	
 	//температура
-	T = 0; Tmax = 0; Tmin = 0; dT = 0;
+	T = 0; Tmax = T_array[0]; Tmin = T_array[0]; dT = 0;
 	sum = 0;
 	for (i=0; i <= 4; i++)
 	{
@@ -387,9 +387,9 @@ void GetDataFromCan()
 	dT = Tmax - Tmin;	
 	
 	//напряжение АК
-	UsrAk = 0; Umax_ak = 0; Umin_ak = 0; dUak = 0;
+	UsrAk = 0; Umax_ak = Uak_array[0]; Umin_ak = Uak_array[0]; dUak = 0;
 	sum = 0;
-	for (i=0; i <= 72; i++)
+	for (i=0; i <= 71; i++)
 	{
 		if(Uak_array[i] > Umax_ak) 
 			Umax_ak = Uak_array[i];
@@ -1927,43 +1927,39 @@ unsigned char fByte3(float fv, int ind)
 void MakePack3(void)	// Заполнение пакета Краткой телем. данными	
 { 
 // нужна ли эта корректировка?
-//	if (stat1[iMUK_ZRU] & bPC)		  {	fV_AB[76].Fdata += 0.1;	}   //Коррекция напряжения 72-го АК АБ ДЛЯ БЭ
-
+//	if (stat1[iMUK_ZRU] & bPC)		  {	fV_AB[76].Fdata += 0.1;	}   //Коррекция напряжения 72-го АК АБ ДЛЯ БЭ	
 	
-	PackRs3[4]  = fByte3(Uab, 0);																					// Напряжение АБ, В
-	PackRs3[5]  = fByte3(P, 1);																						// Текущее значение среднего давления в НВА, кгс/см2
-	PackRs3[6]  = fByte3(UsrAk, 2);																				// Среднее значение напряжения по 72 АК, В
-	PackRs3[7]  = fByte3(Umax_ak, 3);																			// Максимальное напряжение АК,В
-	PackRs3[8]  = fByte3(Umin_ak, 4);																			// Минимальное напряжение АК, В
-	PackRs3[9]  = fByte3(dUak, 5);																				// Разница напряжений макс и мин значений из 72 АК, В
-	PackRs3[10] = fByte3(dP, 6);																					// Разница макс и мин давлений из 5-ти изм НВА, кгс/см2
-	PackRs3[11] = fByte3(T, 7);																						// Текущее значение средней температуры НВАБ, С					
+	PackRs3[4]  = CreateByteFromParam(Uab, 10, 0.44);																					// Напряжение АБ, В
+	PackRs3[5]  = CreateByteFromParam(P, 0, 0.26);																						// Текущее значение среднего давления в НВА, кгс/см2
+	PackRs3[6]  = CreateByteFromParam(UsrAk , -1, 0.014);																				// Среднее значение напряжения по 72 АК, В
+	PackRs3[7]  = CreateByteFromParam(Umax_ak, -1, 0.014);																			// Максимальное напряжение АК,В
+	PackRs3[8]  = CreateByteFromParam(Umin_ak, -1, 0.014);																			// Минимальное напряжение АК, В
+	PackRs3[9]  = CreateByteFromParam(dUak , 0, 0.014);																				// Разница напряжений макс и мин значений из 72 АК, В
+	PackRs3[10] = CreateByteFromParam(dP, 0, 0.26);																					// Разница макс и мин давлений из 5-ти изм НВА, кгс/см2
+	PackRs3[11] = CreateByteFromParam(T, -10, 0.28);																						// Текущее значение средней температуры НВАБ, С					
 	PackRs3[12] = ((bNoWrkCAN >> 5) & 0x1) |															// 5->0	Состояние резервного канала связи CAN с МК3 БЭ
 								((bNoWrkCAN >> 2) & 0x2) |															// 3->1	Состояние резервного канала связи CAN с МК2 БЭ
 								((bNoWrkCAN << 1) & 0x4) |															// 1->2	Состояние резервного канала связи CAN с МК1 БЭ
 								((bNoWrkCAN >> 1) & 0x8) |															// 4->3	Состояние основного  канала связи CAN с МК3 БЭ	
 								((bNoWrkCAN << 2) & 0x10)|															// 2->4	Состояние основного  канала связи CAN с МК2 БЭ	
-								((bNoWrkCAN << 5) & 0x20);															// 0->5	Состояние основного  канала связи CAN с МК1 БЭ	
-	
+								((bNoWrkCAN << 5) & 0x20);															// 0->5	Состояние основного  канала связи CAN с МК1 БЭ		
 	//5 давлений
-	PackRs3[13] = 1;
-	PackRs3[14] = 2;
-	PackRs3[15] = 3;
-	PackRs3[16] = 4;
-	PackRs3[17] = 5;
+	PackRs3[13] = CreateByteFromParam(P_array[0], 0, 0.26);
+	PackRs3[14] = CreateByteFromParam(P_array[1], 0, 0.26);
+	PackRs3[15] = CreateByteFromParam(P_array[2], 0, 0.26);
+	PackRs3[16] = CreateByteFromParam(P_array[3], 0, 0.26);
+	PackRs3[17] = CreateByteFromParam(P_array[4], 0, 0.26);
 	//5 температур
-	PackRs3[18] = 1;
-	PackRs3[19] = 2;
-	PackRs3[20] = 3;
-	PackRs3[21] = 4;
-	PackRs3[22] = 5;
+	PackRs3[18] = CreateByteFromParam(T_array[0], -10, 0.28);
+	PackRs3[19] = CreateByteFromParam(T_array[1], -10, 0.28);
+	PackRs3[20] = CreateByteFromParam(T_array[2], -10, 0.28);
+	PackRs3[21] = CreateByteFromParam(T_array[3], -10, 0.28);
+	PackRs3[22] = CreateByteFromParam(T_array[4], -10, 0.28);
 	//2 давления, 2 температуры
-	PackRs3[23] = 1;
-	PackRs3[24] = 2;
-	PackRs3[25] = 3;
-	PackRs3[26] = 4;
-
-//	MakePackTst(PackRs3, lngPackRs3);
+	PackRs3[23] = CreateByteFromParam(Pmax, 0, 0.26);
+	PackRs3[24] = CreateByteFromParam(Pmin, 0, 0.26);
+	PackRs3[25] = CreateByteFromParam(Tmax, -10, 0.28);
+	PackRs3[26] = CreateByteFromParam(Tmin, -10, 0.28);
 
 	checksumCalc = Crc16(PackRs3, lngPackRs3-2);													// Выисление контрольной суммы
 	*(PackRs3+lngPackRs3-1) =  checksumCalc;	
@@ -2004,47 +2000,16 @@ unsigned char fByte4(int nArr, int iarr, int ind)
 
 //-------------------------------------------------------------------------------------------------------------------------
 void MakePack4(void)	// Заполнение пакета Полной телем. данными
-{	int j, tmp;
+{	
 	
-	for(i=4; i < 76; i++)		{
-//		if (i == 75)	{
-//			if (stat1[iMUK_ZRU]	& bRazryad) {	fV_AB[i+1].Fdata = fV_AB[i+1].Fdata + aI_razr*0.002;	}
-//			if (stat1[iMUK_ZRU]	& bZaryad)  {	fV_AB[i+1].Fdata = fV_AB[i+1].Fdata - aI_zar *0.002;	}
-//			if (stat1[iMUK_ZRU] & bPC)		  {	fV_AB[i+1].Fdata = fV_AB[i+1].Fdata + 0.1;	}
-//		}
-//		PackRs4[i] = (int)((fV_AB[i+1].Fdata-x0_p4[0])/z_p4[0]+0.5);				//	Напряжение 1..72-ого НВА НВАБ БЭ
-		if (fV_AB[i+1].Fdata >= x0_p4[0])		{
-			tmp = (int) ((fV_AB[i+1].Fdata-x0_p4[0])/z_p4[0]+0.5);
-			if (tmp>255)	PackRs4[i] = 255;	else	PackRs4[i] = tmp;	}	
-		else	PackRs4[i] = 0;
-	}
-	j=i;
-
-	for(i=0; i < 5; i++)		{
-		PackRs4[j] = fByte4(1, 8+i, 1);	j++; 																//	значение ДД1..5	fVdatch[0][ak].Fdata;
-	}
-	for(i=0; i < 5; i++)		{
-		PackRs4[j] = fByte4(1, 13+i, 2);	j++; 															//	значение ДT1..5	fVdatch[0][ak].Fdata;
+	for(i=4; i < 76; i++)
+	{
+		PackRs4[i] = CreateByteFromParam(Uak_array[i-4], -1, 0.014);
 	}
 	
-	if (PvzRas >= x0_p9[0])		{	
-		tmp = (int) ((PvzRas -x0_p9[0])/z_p9[0]+0.5);
-		if (tmp>255)	PackRs4[j] = 255;
-		else					PackRs4[j] = tmp;
-	}	
-	else	PackRs4[j] = 0;
-	j++;
+	PackRs4[86] = CreateByteFromParam(PvzRas, 38, 0.12);
+	PackRs4[87] = CreateByteFromParam(P0_Ras, 0, 0.08);
 	
-	if (P0_Ras >= x0_p9[1])		{																	
-		tmp = (int) ((P0_Ras -x0_p9[1])/z_p9[1]+0.5);
-		if (tmp>255)	PackRs4[j] = 255;											
-		else					PackRs4[j] = tmp;
-	}	
-	else	PackRs4[j] = 0;	
-	j++;
-	
-//	MakePackTst(PackRs4, lngPackRs4);
-
 	checksumCalc = Crc16(PackRs4, lngPackRs4-2);													// Выисление контрольной суммы
 	*(PackRs4+lngPackRs4-1) =  checksumCalc;	
 	*(PackRs4+lngPackRs4-2) =  checksumCalc >> 8;													// Добавить контрольную сумму
@@ -2075,6 +2040,9 @@ void ClearPack4(void)	// Заполнение пакета Полной теле
 {	int i;
 	for(i=4; i < lngPackRs4; i++)		{	PackRs4[i] = 0;	}										// Напряжение 1..72-ого НВА НВАБ БЭ и т.д.
 
+	PackRs4[86] = CreateByteFromParam(PvzRas, 38, 0.12);
+	PackRs4[87] = CreateByteFromParam(P0_Ras, 0, 0.08);
+	
 	checksumCalc = Crc16(PackRs4, lngPackRs4-2);													// Выисление контрольной суммы
 	*(PackRs4+lngPackRs4-1) =  checksumCalc;	
 	*(PackRs4+lngPackRs4-2) =  checksumCalc >> 8;													// Добавить контрольную сумму
