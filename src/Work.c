@@ -165,6 +165,10 @@ void pOtkl_Shim_ZRU (int bWait)																// "ОТКЛ ЗРУ"
 	stat1[iMUK_ZRU]	&= ~pwrZRU;
 	stat3[iMUK_ZRU] &= ~vklZRU;																	// ЗРУ отключено
 	set100ms = 1;
+	
+	MDR_PORTA->RXTX |= (1<<2); 
+	Wait_(2*tWaitCmd);
+	MDR_PORTA->RXTX &= ~(1<<2);
 	//if (bWait) Wait_(tWaitCmd);																	// Ожидание завершения коммутации силовый цепей
 }
 
