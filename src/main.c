@@ -192,8 +192,6 @@ extern unsigned char PackRs4[lngPackRs4];													// Ответ на пак�
 extern unsigned char PackRs5[lngPackRs5];													// Ответ на пакет 5
 extern unsigned char PackRs6[lngPackRs6];													// Ответ на пакет 6
 extern unsigned char PackRs7[lngPackRs7];													// Ответ на пакет 7
-extern unsigned char PackRs8[lngPackRs8];													// Ответ на пакет 8
-extern unsigned char PackRs9[lngPackRs9];													// Ответ на пакет 9
 extern unsigned char PackRs10[lngPackRs10];												// Ответ на пакет 10
 
 extern unsigned char * p_ParRs;
@@ -1881,10 +1879,6 @@ void MakePack2_5_8_10(void)	// Заполнение пакетов-ответо�
 	*(PackRs5+lngPackRs5-1) =  checksumCalc;	
 	*(PackRs5+lngPackRs5-2) =  checksumCalc >> 8;													// Добавить контрольную сумму
 
-	checksumCalc = Crc16(PackRs8, lngPackRs8-2);													// Выисление контрольной суммы
-	*(PackRs8+lngPackRs8-1) =  checksumCalc;	
-	*(PackRs8+lngPackRs8-2) =  checksumCalc >> 8;													// Добавить контрольную сумму
-
 	checksumCalc = Crc16(PackRs10, lngPackRs10-2);												// Выисление контрольной суммы
 	*(PackRs10+lngPackRs10-1) =  checksumCalc;	
 	*(PackRs10+lngPackRs10-2) =  checksumCalc >> 8;												// Добавить контрольную сумму
@@ -2928,10 +2922,6 @@ void WrkCmd_1(void)
 
 	case	gSaveData_to_BCU:
 												p_ParRs1 = PackRs7;	BatchSize1 = lngPackRs7;	break;		// 0x7	запоминаемые для восстановления данные в БВС 
-	case	gRestData_from_BCU:		bGetData = 1;		p_InPack = pack1+4;		
-												p_ParRs1 = PackRs8;	BatchSize1 = lngPackRs8;	break;		// 0x8	данные для восстановления из БВС 
-	case	gParamZRU:
-												p_ParRs1 = PackRs9;	BatchSize1 = lngPackRs9;	break;		// 0x9	частные параметры ЗРУ 
 	case	gTstLine:				
 												p_ParRs1 = PackRs10;BatchSize1 = lngPackRs10;	break;		// 0xFF	проверка связи
 	}
@@ -2990,10 +2980,6 @@ void WrkCmd_2(void)
 
 	case	gSaveData_to_BCU:
 												p_ParRs2 = PackRs7;	BatchSize2 = lngPackRs7;	break;		// 0x7	запоминаемые для восстановления данные в БВС 
-	case	gRestData_from_BCU:		bGetData = 1;		p_InPack = pack2+4;
-												p_ParRs2 = PackRs8;	BatchSize2 = lngPackRs8;	break;		// 0x8	данные для восстановления из БВС 
-	case	gParamZRU:
-												p_ParRs2 = PackRs9;	BatchSize2 = lngPackRs9;	break;		// 0x9	частные параметры ЗРУ 
 	case	gTstLine:				
 												p_ParRs2 = PackRs10;BatchSize2 = lngPackRs10;	break;		// 0xFF	проверка связи
 	}

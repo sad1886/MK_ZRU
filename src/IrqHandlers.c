@@ -431,12 +431,10 @@ void UART1_IRQHandler(void)
 						case gStat_AB_Full:																										// Сост_АБ_Полн_БЭ – полная телеметрия БЭ
 						case gUstavki_Tst:																										// контроль параметров (уставок) алгоритмов ЗРУ
 						case gSaveData_to_BCU:																								// запоминаемые для восстановления данные в БВС 
-						case gParamZRU:																												// частные параметры ЗРУ 
 						case gTstLine:						lngPack1 = lngStat_ZRU;			break;					// проверка связи
 						
 						case gCmd_for_ZRU:				lngPack1 = lngCmd_ZRU;			break;					// команда для ЗРУ
 						case gUstavki_Curr:				lngPack1 = lngUstavki_Curr;	break;					// Уставки_Текущ - управление БЭ
-						case gRestData_from_BCU:	lngPack1 = lngRestData_BCU;	break;					// данные для восстановления из БВС 
 						default:							{	bBadCmd1 = 1;	}																// недопустимая команда
 						}
 					}
@@ -525,12 +523,10 @@ void UART2_IRQHandler(void)
 						case gStat_AB_Full:																										// Сост_АБ_Полн_БЭ – полная телеметрия БЭ
 						case gUstavki_Tst:																										// контроль параметров (уставок) алгоритмов ЗРУ
 						case gSaveData_to_BCU:																								// запоминаемые для восстановления данные в БВС 
-						case gParamZRU:																												// частные параметры ЗРУ 
 						case gTstLine:						lngPack2 = lngStat_ZRU;			break;					// проверка связи
 						
 						case gCmd_for_ZRU:				lngPack2 = lngCmd_ZRU;			break;					// команда для ЗРУ
 						case gUstavki_Curr:				lngPack2 = lngUstavki_Curr;	break;					// Уставки_Текущ - управление БЭ
-						case gRestData_from_BCU:	lngPack2 = lngRestData_BCU;	break;					// данные для восстановления из БВС 
 						default:							{	bBadCmd2 = 1;	}																// недопустимая команда
 						}
 					}
