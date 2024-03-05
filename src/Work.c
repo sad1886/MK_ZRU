@@ -32,7 +32,10 @@ extern volatile float	curW_zar,																// Текущ заряд НВАБ
 extern int add_nbuf;
 extern uint32_t Result;
 
-extern volatile unsigned char StepAlgortmRazr, StepAlgortmZar;
+//шаги разных алгоритмов
+enum ZarSteps StepAlgortmZar;
+enum RazSteps StepAlgortmRazr; 
+enum PodzarSteps StepAlgortmPodzar;
 
 uint32_t bitNotZar, bitNotRaz;																// Состояние проводных линий
 volatile unsigned char bNoWrkCAN;															// 0 - CAN работает, 1 - CAN не работает
@@ -509,7 +512,7 @@ void PutParamADC (void)																																				// С 14.07.20
 				if ((Vals_ZRU[0] > fNul)||(Vals_ZRU[1] > fNul))	{																									// fNul = 0.8
 					if (mode_Razryad != 0) 
 					{
-						StepAlgortmZar = bInitZarayd;																																//начинаем алгоритм заново
+						StepAlgortmZar = st_InitZarayd;																																//начинаем алгоритм заново
 						//в момент перехода из одного режима в другой обнуляем эти флаги
 						//stat2[iMUK_ZRU] = 0;
 						//stat3[iMUK_ZRU] &= ~(errNoOgrTokRazr|errNoOgrTokZar|errPrevDopustT);  											
@@ -533,7 +536,7 @@ void PutParamADC (void)																																				// С 14.07.20
 				if ((Vals_ZRU[2] > fNul)||(Vals_ZRU[3] > fNul))	{
 					if (mode_Zaryad != 0) 
 					{
-						StepAlgortmRazr = bInitRazryda;																															//начинаем алгоритм заново
+						StepAlgortmRazr = st_InitRazryad;																															//начинаем алгоритм заново
 						//в момент перехода из одного режима в другой обнуляем эти флаги							
 						//stat2[iMUK_ZRU] = 0;
 						//stat3[iMUK_ZRU] &= ~(errNoOgrTokRazr|errNoOgrTokZar|errPrevDopustT);  											

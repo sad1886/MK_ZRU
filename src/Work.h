@@ -15,7 +15,7 @@
 
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //----------- Версия прошивки ----------------------------------------------------
-#define Version 7.2.1
+#define Version 7.2.2
 
 //************__В_Ы_Б_О_Р___НОМЕРА_ЗРУ_и_НОМЕРА__МУК__**********************************************************************
 
@@ -178,6 +178,7 @@
 #define vsCount20				20									// 20 сек для задержки повтора 3 раза алгоритма заряда
 #define vsCount40				40									// 40 сек для задержки
 
+#define dt1							1										// Дельта времени 5 сек при разряде
 #define dt5							5										// Дельта времени 5 сек при разряде
 #define dt20						20									// Дельта времени 20 сек при ТВЦ
 #define timeRazr 				108000							// timeRazr = 108000сек (30*60*60)
@@ -238,39 +239,15 @@
 #define bEnd_Alg_TVC				0xA1						// Конец алгоритма ТВЦ
 
 //--------------------------- Шаги состояния процессов заряд-разряд -------------------------------------------------------
-#define bInitZarayd					0x8							// Выбор уставок температуры и давления.
-#define bWaitVkl_ZaprZara		0x22						// Ожидание ВКЛ ЗАПРЕД ЗАРЯД
-#define bViborUst						0x23						// Выбор уставок температуры и давления.
-#define bOtkl_ZaprZarayd		0x24						// ОТКЛ ЗАПРЕД ЗАРЯД
-#define bWaitOtkl_ZaprZar		0x25						// Ожидание ОТКЛ ЗАПРЕД ЗАРЯД
-#define bWaitOtkl_ZaprZar2	0x26						// Ожидание ОТКЛ ЗАПРЕД ЗАРЯД 2
-#define bTst_P_NVAB					0x27						// Проверка температуры НВАБ
-#define bVkl_Zarayd					0x35						// ВКЛ ЗАРЯД 	разрешать заряд НВАБ
-#define bVkl_Zarayd_On			0x36						// ВКЛ ЗАРЯД 	включен	(заряд НВАБ)
-#define bWaitTmax_2					0x37						// Ожидание остывания батареи до Tmax-2
+enum ZarSteps {st_InitZarayd = 100, st_OtklKomp, st_WaitOtklKomp, st_Tst_P_NVAB, st_OtklZar_1, st_Vkl_Zarayd, st_Tst_T_NVAB_1, st_OtklZar_2, st_Tst_P_NVAB_2, st_Vkl_Zarayd_On, st_OtklZar_3, st_ViborUst};
 
 //--------------------------- Шаги состояния процесса разряд --------------------------------------------------------------
-#define bInitRazryda				0x50						// Инициализация разряда
-#define bUabCheck						0x51						// Контроль Uаб
-#define bWaitOtkl_ZaprRaz		0x52						// Ожидание ОТКЛ ЗАПРЕД РАЗРЯД
-#define bTst_U_Razryda			0x53						// Проврка падения напряжения разряда
-#define bTst_I_Razryda			0x54						// Проврка ограничения тока разряда
-#define bZRPCheck						0x55						// Контроль ЗРП
-#define bTst_I_Comp2				0x56						// Проврка ограничения тока разряда
-#define bCntWC_Razryda			0x57						// Расчёт W C разряда
-#define bWaitPause					0x58						// Задержка
-#define bTst_U_Razryda_end	0x59						// Проврка падения напряжения разряда при запрете разряда
-#define bOtkl_Razrayd				0x6							// ОТКЛ РАЗРЯД, запрещать разряд НВАБ
+enum RazSteps {st_InitRazryad = 200, st_Tst_I_Razryda, st_Tst_U_Razryda, st_Otkl_Razrayd, st_OtklRaz_Inspect, st_Tst_U_Razryda_end, st_UabCheck, st_WaitPause, st_ZRPCheck};
 
 //--------------------------- Шаги состояния процесса подзаряд -------------------------------------------------------------
-#define bInitPodzaryd				0xf0						// Инициализация дозаряда
-#define bStartPodzaryd			0xf1						// Сравнение давления P с Pnuz
-#define bTst_Tnuzab					0xf2						// Сравнение давления T с Tnuzab
-#define bTst_Tnuzab2				0xf3						// Сравнение давления T с Tnuzab
-#define bTst_Tnuzab_2				0xf4						// Сравнение давления T с Tnuzab-2
-#define bTst_Tnuzab_22			0xf5						// Сравнение давления T с Tnuzab-2
-#define bZaryd_Pnuz					0xf6						// Заряд до Pнуз током 7..10А
-#define bEndPodzaryda				0xff						// Завершение Дозаряда
+enum PodzarSteps {st_p_InitPodzar = 300, st_p_OtklPodzar_1, st_p_Pnuz_1, st_p_VklKomp, st_p_Tnuz_1, st_p_Otkl_ZaprZarayd, st_p_WaitOtkl_ZaprZar, st_p_Tnuz_2, st_p_Pnuz_2,
+									st_p_OtklPodzar_2, st_Tnuz_minus2, st_p_WaitVklKomp, st_p_ZarydComp, st_p_Tvuz_minus2, st_p_WaitOtklKomp, st_p_EndPodzaryda};
+
 
 //--------------------------- Режимы работы -------------------------------------------------------------------------------
 #define Init_Run						1								// Инициализация всех процессов при старте или сбоях Uart (Ошибки принятия данных по UART)
@@ -337,8 +314,9 @@
 
 //Токи алгоритма Заряда/Разряда
 #define	aIkomp							3								// Ток компенсационного заряда
+#define	aIkomp_1A						1								// Ток, встречается в алгоритме подзаряда
 #define	aIporog							2								// Предназначена для контролея наличия/отсутсвия тока 
-#define	aIzard							25							// Ток заряда
+#define	aIzard							18							// Ток заряда
 #define	aIogrn							27							// Ток максимально допустимый
 #define	aIrazr_ogrn					30							// Ток максимально допустимый
 
