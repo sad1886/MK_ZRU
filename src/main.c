@@ -56,6 +56,9 @@ volatile float	time_Razr;
 volatile unsigned char nBadAkBE[5];														// Номера отказавших аккумуляторов от БЭ
 volatile unsigned char nBadAk[5];															// Номера отказавших аккумуляторов от БЦУ
 volatile unsigned char nGudAk = nAllAE;												// Число исправных аккумуляторов 
+volatile unsigned char nBadAK_U[72]; 	//массив содержит информацию, отказавший ли АК или нет, 0 - норма, 1 - отказавший
+volatile unsigned char nBadAK_DT[5];	//массив содержит информацию, отказавший ли АК или нет, 0 - норма, 1 - отказавший
+volatile unsigned char AK_to_DT[5] = {54, 25, 17, 60, 50}; //таблица соответствия номеров АК (72 штуки) номерам ДД и ДТ (5 штук). 
 
 //-------------------------------------------------------------------------------------------------------------------------
 volatile float Pu[nUst] = {Pvuz1_def,Pvuz2_def,Pvir3_def};					// Уставки давления. Рвыр = Pu[nUst]
@@ -305,7 +308,7 @@ float GetParamFromCANFrame(volatile union uBytes64 ArrayFrames[], unsigned int f
 //функция получает из КАНовских фреймов необходимые нам параметры
 void GetDataFromCan() 
 {	
-	unsigned int i;
+	unsigned int i, cnt;
 	unsigned int ind, fr;
 	float Uab1, Uab2, sum;
 	
@@ -351,45 +354,91 @@ void GetDataFromCan()
 	Uab = (Uab1 + Uab2)/2;
 	
 	//давление
-	P = 0; Pmax = P_array[0]; Pmin = P_array[0]; dP = 0;
-	sum = 0;
+	P = 0; Pmax = 0; Pmin = 0; dP = 0; 
+	sum = 0; cnt = 0;
+	
+	for (i=0; i <= 4; i++) 
+	{
+		if(nBadAK_DT[i] == 0) //находим первый неотказавший измерительный АК
+		{
+			Pmax = P_array[i];
+			Pmin = P_array[i];
+		}	
+	}	
+
 	for (i=0; i <= 4; i++)
 	{
+		if(nBadAK_DT[i] != 0) //если АК отказавший
+			continue; //игнорируем его
+		
 		if(P_array[i] > Pmax) 
 			Pmax = P_array[i];
 		if(P_array[i] < Pmin) 
 			Pmin = P_array[i];
+		
 		sum += P_array[i];
+		cnt++;
 	}
-	P = sum/5;
+	P = sum/cnt;
 	dP = Pmax - Pmin;
 	
 	//температура
-	T = 0; Tmax = T_array[0]; Tmin = T_array[0]; dT = 0;
-	sum = 0;
+	T = 0; Tmax = 0; Tmin = 0; dT = 0;
+	sum = 0; cnt = 0;
+
+	for (i=0; i <= 4; i++) 
+	{
+		if(nBadAK_DT[i] == 0) //находим первый неотказавший измерительный АК
+		{
+			Tmax = T_array[i];
+			Tmin = T_array[i];
+		}	
+	}		
+	
 	for (i=0; i <= 4; i++)
 	{
+		if(nBadAK_DT[i] != 0) //если АК отказавший
+			continue; //игнорируем его
+		
 		if(T_array[i] > Tmax) 
 			Tmax = T_array[i];
 		if(T_array[i] < Tmin) 
 			Tmin = T_array[i];
+		
 		sum += T_array[i];
+		cnt++;
 	}
-	T = sum/5;
+	T = sum/cnt;
 	dT = Tmax - Tmin;	
 	
 	//напряжение АК
-	UsrAk = 0; Umax_ak = Uak_array[0]; Umin_ak = Uak_array[0]; dUak = 0;
-	sum = 0;
+	UsrAk = 0; Umax_ak = 0; Umin_ak = 0; dUak = 0;
+	sum = 0; cnt = 0;
+	
 	for (i=0; i <= 71; i++)
 	{
+		if(nBadAK_U[i] == 0) //находим первый неотказавший АК
+			{
+				Umax_ak = Uak_array[i];
+				Umin_ak = Uak_array[i];
+			}			
+	}
+	
+	for (i=0; i <= 71; i++)
+	{
+		if(nBadAK_U[i] != 0) //если АК отказавший
+			continue; //игнорируем его
+		
 		if(Uak_array[i] > Umax_ak) 
 			Umax_ak = Uak_array[i];
 		if(Uak_array[i] < Umin_ak) 
 			Umin_ak = Uak_array[i];
+		
 		sum += Uak_array[i];
+		cnt++;
 	}
-	UsrAk = sum/72;
+	
+	UsrAk = sum/cnt;
 	dUak = Umax_ak - Umin_ak;
 }
 
@@ -1966,6 +2015,32 @@ void ClearPack4(void)	// Заполнение пакета Полной теле
 	*(PackRs4+lngPackRs4-2) =  checksumCalc >> 8;													// Добавить контрольную сумму
 
 }
+//-------------------------------------------------------------------------------------------------------------------------
+//функция пробегает по массиву, содержащему номера отказавших АК, и заполняет специальные служебные массивы, которые будут участвовать при расчете параметров в GetDataFromCan()
+void BadAK_registration()
+{
+	unsigned char i = 0;	
+		
+	for(i = 0; i < 5; i++) //заполняем нулями массив, соответствующий 5 ДТ и ДД
+		nBadAK_DT[i] = 0;
+	for(i = 0; i < 72; i++) //заполняем нулями массив, соответствующий 72 АК
+		nBadAK_U[i] = 0;
+
+	for(i = 0; i < 5; i++) //пробегаем по всем номерам отказавших АК
+	{
+		if((nBadAk[i] <= 0) && (nBadAk[i] >72)) //проверяем, корректный ли номер, и не равен ли он 0
+			continue; //если номер некорректный или равен нулю - просто игнорируем его и переходим к следующему элементу массива
+		
+		nBadAK_U[nBadAk[i]-1] = 1;  //фиксируем номер АК как отказавший, с учетом того, что индексация в массиве начинается с 0 (поэтому делаем -1)
+
+		//проверяем, не является ли откзавший АК измерительным
+		if (nBadAk[i] == 54) nBadAK_DT[0] = 1; 
+		if (nBadAk[i] == 25) nBadAK_DT[1] = 1; 
+		if (nBadAk[i] == 17) nBadAK_DT[2] = 1; 
+		if (nBadAk[i] == 60) nBadAK_DT[3] = 1; 
+		if (nBadAk[i] == 50) nBadAK_DT[4] = 1; 		
+	}
+}
 
 //-------------------------------------------------------------------------------------------------------------------------
 void MakePack5(void)
@@ -2005,6 +2080,7 @@ void MakePack5(void)
 		if (nBadAk[i])	cntBadAk++;
 	}
 	nGudAk = nAllAE - cntBadAk;
+	BadAK_registration();
 
 	//if (cntBadAk)	{
 		CurrentDlc = 5; CurrentCmd = CAN_NumBadAk;
