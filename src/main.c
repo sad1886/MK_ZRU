@@ -215,7 +215,7 @@ extern float x0_p5[lngUstavki_Curr-6];														// x0 – сдвиг нул�
 
 
 
-int cnt=0, cntTimeOut=0;
+int cnt_can=0, cntTimeOut=0;
 
 extern unsigned char bReqBCU[2];																		// Флаг: поступил запрос (команда) от БЦУ
 
@@ -3044,13 +3044,13 @@ int main(void)
 			if	((updateD1)&&(updateD2))	{																		// Получены все фрейимы пакета1 и пакета2
 				GetDataFromCan(); 																							// Забираем из пакетов нужную нам телеметрию
 				MakePack3();	MakePack4();																			// if ((!bReqBCU[0])&&(!bReqBCU[1]))	{	MakePack3();	MakePack4(); }
-				cnt=0;	updateD1=0;		updateD2=0;
+				cnt_can=0;	updateD1=0;		updateD2=0;
 				if (mode == CAN_not_working)	{mode = Init_Run;}
 				DataOk = 1;
 			}
 			// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 			else {																														// Данные телеметрии НЕ получены
-				if (cnt<4)	{	cnt++;	}
+				if (cnt_can<4)	{	cnt_can++;	}
 				else	{																													// 5сек. нет связи по CAN
 					ClearPack3();		ClearPack4();
 					if ((mode != CAN_not_working)&&(mode != Vkl_ZRU))	{
