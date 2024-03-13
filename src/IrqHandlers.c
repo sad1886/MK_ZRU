@@ -39,9 +39,15 @@ extern volatile unsigned char bReciev_CanAB[nFrameABCAN];									// Флаги 
 extern int nfRec_CanDatch1, nfRec_CanDatch2;															// Маска принятых фреймов телеметрии датчиков 0x3ff
 extern int nfRec_CanAK1, nfRec_CanAK2;																		// Маска принятых фреймов телеметрии АК 0xfffff
 
+extern int nfRec_CanDatch1_All[nMUKBE], nfRec_CanDatch2_All[nMUKBE];							// Маска принятых фреймов телеметрии датчиков 0x3ff всех трех МК БЭ
+extern int nfRec_CanAK1_All[nMUKBE], nfRec_CanAK2_All[nMUKBE];										// Маска принятых фреймов телеметрии АК 0xfffff всех трех МК БЭ
+
 extern volatile union uBytes64 Reciev_CanErrors;													// Телеметрия отказов БЭ
 extern volatile union uBytes64 Reciev_CanDatch[nFrameDatchCAN];						// Телеметрия датчиков
 extern volatile union uBytes64 Reciev_CanAB[nFrameABCAN];									// Телеметрия АБ
+
+extern volatile union uBytes64 Reciev_CanDatch_All[nMUKBE][nFrameDatchCAN];			// Телеметрия датчиков всех трех МК
+extern volatile union uBytes64 Reciev_CanAB_All[nMUKBE][nFrameABCAN];						// Телеметрия АБ всех трех МК
 
 extern volatile unsigned char bNoWrkCAN;																	// 1 - CAN не работает, 0 - CAN  работает
 
@@ -153,6 +159,8 @@ void CAN1_IRQHandler()																														// Получает данн
 //=================================================================================================================================================
 {	uint64_t dataH;			int i, bGet;
 	uint32_t can1_status, RecievCanID, nom, cod, nFrame, DLC_last;									//     adrRx;, adrTx
+	uint32_t nom_fr; //вспомогательная переменная "номер фрейма", меньше переменной nom на 1, так как массивы начинают отсчет с 0
+	uint32_t ind_MK_BE; //индекс массива, в который мы записываем пришедшую телеметрию 
 	
 	can1_status = MDR_CAN1->STATUS;
 
@@ -169,11 +177,45 @@ void CAN1_IRQHandler()																														// Получает данн
 				cod		 = 0x0000000f & RecievCanID >> 12;																		// Код пакета
 				adrTx1 = 0x0000000f & RecievCanID >> 20;																		// Адрес узла-передатчика пакета (МУК1..3 соотв 1,3,5)
 	
-//				if ((adrTx1+6)==AdrCAN1_ZRU)																								// Для этого МУКа
-//					{	}
 				if (adrTx1 < 7)	{		// обслужить запросы только 1..6 адрес МУК1..3 БЭ
 
 					cntSec_noCAN[adrTx1-1]=0;		bNoWrkCAN &= ~(1<<(adrTx1-1));
+					
+					if ((adrTx1 == 1) || (adrTx1 == 3) || (adrTx1 == 5)) //мы находимся в обработчике прерывания CAN1 и если приняли данные от первого канала одного из МК БЭ
+					{//часть кода, посвященная сбору телеметрии всех трех МК БЭ					
+						
+					if (nom==nFrame)	{ //для последнего фрейма в пакете затираем лишнюю информацию
+						DLC_last = 0x0000000f & MDR_CAN1->CAN_BUF[nbuf_RX].DLC;								// Последний фрейм
+						mask = 0x0;		for(i=1;i<DLC_last+1;i++)	{	mask = (mask<<8)|1;	}
+						mask = mask*0xff;
+					}	else	mask = 0xffffffffffffffff;
+					
+					nom_fr = nom - 1;					
+					
+					dataH	= MDR_CAN1->CAN_BUF[nbuf_RX].DATAH;
+					
+					//решаем, телеметрию какого из трех МК БЭ мы получили, чтобы выбрать правильный индекс массивов телеметрии, в которые будем писать данные
+					if ((adrTx1 == 1) || (adrTx1 == 2)) //если получили данные из первого МК БЭ
+							ind_MK_BE = 0;
+					if ((adrTx1 == 3) || (adrTx1 == 4)) //если получили данные из второго МК БЭ
+							ind_MK_BE = 1;
+					if ((adrTx1 == 5) || (adrTx1 == 6)) //если получили данные из первого МК БЭ
+							ind_MK_BE = 2;
+					
+					switch (cod)	{
+					case CAN_PI_Datch:																											// Получение телеметрии ДД, ДТ
+						nfRec_CanDatch1_All[ind_MK_BE] |= 1<<nom_fr;
+						Reciev_CanDatch_All[ind_MK_BE][nom_fr].data64	= mask & (dataH<<32 | MDR_CAN1->CAN_BUF[nbuf_RX].DATAL);
+						break;
+					case CAN_PI_AK:																													// Получение телеметрии аккумуляторов 
+						nfRec_CanAK1_All[ind_MK_BE] |= 1<<nom_fr;
+						Reciev_CanAB_All[ind_MK_BE][nom_fr].data64			= mask & (dataH<<32 | MDR_CAN1->CAN_BUF[nbuf_RX].DATAL);
+						break;
+					default:
+					;
+					}
+									
+					}//~часть кода, посвященная сбору телеметрии всех трех МК БЭ
 					
 					bGet=0;
 					if (nMUK_ZRU==nMUK3_ZRU)	{																								// Только для МУК3
@@ -184,8 +226,6 @@ void CAN1_IRQHandler()																														// Получает данн
 						if ((adrTx1+6)==AdrCAN1_ZRU)	bGet=1;																	// Для этого МУКа
 					}
 
-					// ...............................................................................................
-					//if (((adrTx1+6)==AdrCAN1_ZRU)&&(bGet))
 					if (bGet)
 					{
 						if (nom==nFrame)	{
@@ -269,6 +309,8 @@ void CAN2_IRQHandler()																														// Получает данн
 //=================================================================================================================================================
 {	uint64_t dataH;			int i, bGet;
 	uint32_t can2_status, RecievCanID, nom, cod, nFrame, DLC_last;									//     adrRx;, adrTx
+	uint32_t nom_fr; //вспомогательная переменная "номер фрейма", меньше переменной nom на 1, так как массивы начинают отсчет с 0
+	uint32_t ind_MK_BE; //индекс массива, в который мы записываем пришедшую телеметрию 	
 	
 	can2_status = MDR_CAN2->STATUS;
 
@@ -288,6 +330,42 @@ void CAN2_IRQHandler()																														// Получает данн
 				if (adrTx2 < 7)	{																													// обслужить запросы только 1..6 адрес МУК1..3 БЭ
 
 					cntSec_noCAN[adrTx2-1]=0;		bNoWrkCAN &= ~(1<<(adrTx2-1));
+
+					if ((adrTx2 == 2) || (adrTx2 == 4) || (adrTx2 == 6)) //мы находимся в обработчике прерывания CAN2 и если приняли данные от второго канала одного из МК БЭ
+					{//часть кода, посвященная сбору телеметрии всех трех МК БЭ					
+						
+					if (nom==nFrame)	{ //для последнего фрейма в пакете затираем лишнюю информацию
+						DLC_last = 0x0000000f & MDR_CAN2->CAN_BUF[nbuf_RX].DLC;								// Последний фрейм
+						mask = 0x0;		for(i=1;i<DLC_last+1;i++)	{	mask = (mask<<8)|1;	}
+						mask = mask*0xff;
+					}	else	mask = 0xffffffffffffffff;
+					
+					nom_fr = nom - 1;					
+					
+					dataH	= MDR_CAN2->CAN_BUF[nbuf_RX].DATAH;
+					
+					//решаем, телеметрию какого из трех МК БЭ мы получили, чтобы выбрать правильный индекс массивов телеметрии, в которые будем писать данные
+					if ((adrTx2 == 1) || (adrTx2 == 2)) //если получили данные из первого МК БЭ
+							ind_MK_BE = 0;
+					if ((adrTx2 == 3) || (adrTx2 == 4)) //если получили данные из второго МК БЭ
+							ind_MK_BE = 1;
+					if ((adrTx2 == 5) || (adrTx2 == 6)) //если получили данные из первого МК БЭ
+							ind_MK_BE = 2;
+					
+					switch (cod)	{
+					case CAN_PI_Datch:																											// Получение телеметрии ДД, ДТ
+						nfRec_CanDatch2_All[ind_MK_BE] |= 1<<nom_fr;
+						Reciev_CanDatch_All[ind_MK_BE][nom_fr].data64	= mask & (dataH<<32 | MDR_CAN2->CAN_BUF[nbuf_RX].DATAL);
+						break;
+					case CAN_PI_AK:																													// Получение телеметрии аккумуляторов 
+						nfRec_CanAK2_All[ind_MK_BE] |= 1<<nom_fr;
+						Reciev_CanAB_All[ind_MK_BE][nom_fr].data64			= mask & (dataH<<32 | MDR_CAN2->CAN_BUF[nbuf_RX].DATAL);
+						break;
+					default:
+					;
+					}
+									
+					}//~часть кода, посвященная сбору телеметрии всех трех МК БЭ
 					
 					bGet=0;
 					if (nMUK_ZRU==nMUK3_ZRU)	{																							// Только для МУК3

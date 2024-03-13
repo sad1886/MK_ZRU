@@ -109,6 +109,8 @@ volatile union uBytes64 Reciev_CanErrors;											// Телеметрия от
 volatile union uBytes64 Reciev_CanDatch[nFrameDatchCAN];			// Телеметрия датчиков
 volatile union uBytes64 Reciev_CanAB[nFrameABCAN];						// Телеметрия АБ
 
+volatile union uBytes64 Reciev_CanDatch_All[nMUKBE][nFrameDatchCAN];			// Телеметрия датчиков всех трех МК
+volatile union uBytes64 Reciev_CanAB_All[nMUKBE][nFrameABCAN];						// Телеметрия АБ всех трех МК
 //--------------------------- переменные времени ------------------------------------------------------------------------------
 extern tTime	sTime;
 extern int NewDay;

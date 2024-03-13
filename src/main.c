@@ -15,6 +15,7 @@
 #include "Can.h"
 #include "Uart.h"
 #include "Work.h"
+#include "math.h"
 
 //--------------------------- Общие ---------------------------------------------------------------------------------------
 volatile unsigned char mode;																	// Текущий режим работы контроллера
@@ -153,12 +154,18 @@ extern volatile union uBytes64 Reciev_CanErrors;													// Телеметр
 extern volatile union uBytes64 Reciev_CanDatch[nFrameDatchCAN];						// Телеметрия датчиков
 extern volatile union uBytes64 Reciev_CanAB[nFrameABCAN];									// Телеметрия АБ
 
+extern volatile union uBytes64 Reciev_CanDatch_All[nMUKBE][nFrameDatchCAN];			// Телеметрия датчиков всех трех МК
+extern volatile union uBytes64 Reciev_CanAB_All[nMUKBE][nFrameABCAN];						// Телеметрия АБ всех трех МК
+
 volatile unsigned char bReciev_CanErrors[nMUKBE];													// Флаги принятых фреймов телеметрии отказов БЭ
 volatile unsigned char bReciev_CanDatch[nMUKBE][nFrameDatchCAN];					// Флаги принятых фреймов телеметрии датчиков
 volatile unsigned char bReciev_CanAB[nMUKBE][nFrameABCAN];								// Флаги принятых фреймов телеметрии АБ
 
 int nfRec_CanDatch1, nfRec_CanDatch2;																			// Маска принятых фреймов телеметрии датчиков 0x3ff
 int nfRec_CanAK1, nfRec_CanAK2;																						// Маска принятых фреймов телеметрии АК 0xfffff
+
+int nfRec_CanDatch1_All[nMUKBE], nfRec_CanDatch2_All[nMUKBE];							// Маска принятых фреймов телеметрии датчиков 0x3ff всех трех МК БЭ
+int nfRec_CanAK1_All[nMUKBE], nfRec_CanAK2_All[nMUKBE];										// Маска принятых фреймов телеметрии АК 0xfffff всех трех МК БЭ
 
 extern volatile unsigned char bRunCmdCAN, CurrentCmd, CurrentDlc;					// Флаг отправки команды по CAN
 extern uint32_t ResultCAN;																								// Результат выполнения команд Вкл_РС, Откл_РС, Байт ошибок БЭ  по CAN
@@ -310,11 +317,77 @@ void GetDataFromCan()
 {	
 	unsigned int i, cnt;
 	unsigned int ind, fr;
-	float Uab1, Uab2, sum;
+	float sum;
+	float Uab1[3], Uab2[3], Uab_sr12[3], Uab_sr_123, num_sr_123, Uab_delta[3], Uab_maxdelta, Uab_sum; 
+	int connect[3], ind_of_maxdelta;
 	
-	//два напряжения Uab;
-	Uab1 = GetParamFromCANFrame(Reciev_CanDatch, 8, 7);
-	Uab2 = GetParamFromCANFrame(Reciev_CanDatch, 9, 1);
+	//определяем, есть ли связь с МК БЭ
+	connect[0] = ( (bNoWrkCAN & (3<<0) ) != (3<<0) ); //если хотя бы один из двух каналов работает
+	connect[1] = ( (bNoWrkCAN & (3<<2) ) != (3<<2) ); //если хотя бы один из двух каналов работает
+	connect[2] = ( (bNoWrkCAN & (3<<4) ) != (3<<4) ); //если хотя бы один из двух каналов работает
+	
+//	if( (bNoWrkCAN & (3<<0)) != 3 ) //если хотя бы один из двух каналов работает
+//		connect[0] = 0; 
+//	else 
+//		connect[0] = 1;
+//	if( (bNoWrkCAN & (3<<2)) != 3 ) //если хотя бы один из двух каналов работает
+//		connect[1] = 0; 
+//	else 
+//		connect[1] = 1;
+//	if( (bNoWrkCAN & (3<<4))!= 3  ) //если хотя бы один из двух каналов работает
+//		connect[2] = 0; 
+//	else 
+//		connect[2] = 1;
+	
+	{//Напряжение АБ		
+		num_sr_123 = 0; Uab_sr_123 = 0; sum = 0;
+		for(i = 0; i < 3; i++) //фиксируем три пары от каждого из трех МК БЭ
+		{
+			//контролируем, есть ли связь с этим МК			
+			if(connect[i]) //если связь есть
+			{
+				Uab1[i] = GetParamFromCANFrame(Reciev_CanDatch_All[i], 8, 7); 
+				Uab2[i] = GetParamFromCANFrame(Reciev_CanDatch_All[i], 9, 1);		
+			
+				Uab_sr12[i] = (Uab1[i] + Uab2[i])/2; //находим среднее между двумя Uаб одного МК БЭ
+				
+				sum += Uab_sr12[i]; //если связь с МК БЭ есть, то можем добавлять к расчетам его параметры
+				num_sr_123++; //увеличиваем количество МК, участвующих в расчетах
+			}
+			else
+			{
+				Uab1[i] = Uab2[i] = Uab_sr12[i] = 0;				
+			}
+		}
+		Uab_sr_123 = sum/num_sr_123; //находим среднее между всеми тремя МК БЭ (точнее, между всеми расчетными)
+		
+		if(num_sr_123 < 3) //если не было связи со всеми тремя МК
+		{
+			Uab = Uab_sr_123; //нет смысла искать отклонение от среднего. Если МК остался один или два, то мы уже нашли число, которое должны выдавать
+		}
+		else //находим среди трех МК максимально отличающийся, чтобы его исключить
+		{
+			Uab_maxdelta = 0; ind_of_maxdelta = 0;
+			for(i = 0; i < 3; i++)
+			{
+				Uab_delta[i] = fabs(Uab_sr_123 - Uab_sr12[i]); //для каждого из трех БЭ находим отклонение
+				if(Uab_delta[i] >= Uab_maxdelta) //если отклонение максимальное
+				{
+					Uab_maxdelta = Uab_delta[i];
+					ind_of_maxdelta = i; //запоминаем номер этого БЭ
+				}
+			}
+
+			Uab_sum = 0;
+			for(i = 0; i < 3; i++)
+			{
+				if(i == ind_of_maxdelta) continue;
+				Uab_sum += Uab_sr12[i];
+			}
+			Uab = Uab_sum/2;		
+		}
+
+	}//~Напряжение АБ		
 	
 	//пять давлений
 	P_array[0] = GetParamFromCANFrame(Reciev_CanDatch, 3, 7);
@@ -350,8 +423,6 @@ void GetDataFromCan()
 	
 	
 	//расчеты
-	//напряжение Uаб
-	Uab = (Uab1 + Uab2)/2;
 	
 	//давление
 	P = 0; Pmax = 0; Pmin = 0; dP = 0; 
@@ -2755,6 +2826,8 @@ void OneSecAdd (void)													/* Добавить секунду */
 // Инициализация переменных
 void Var_init()
 {	
+	int i,j;
+	
 	iMUK_ZRU = nMUK_ZRU-1;
 	switch (iMUK_ZRU)	{																										// 
 	case 0:	iMUK_ZRU2=1; iMUK_ZRU3=2;	break;															// 
@@ -2792,7 +2865,21 @@ void Var_init()
 	bOneSec = 0;																													// Флаг для чтения параметров АБ в БЭ через 1 сек
 	
 	EndTVC = 0; 																														// Флаг начала процесса окончания ТВЦ
-
+	
+	//заполняем нулями всю телеметрию, касающуюся БЭ
+	for(i = 0; i < nMUKBE; i++) 
+	{
+		nfRec_CanDatch1_All[i] = 0;
+		nfRec_CanDatch2_All[i] = 0;
+		nfRec_CanAK1_All[i] = 0;
+		nfRec_CanAK2_All[i] = 0;
+		
+		for(j = 0; j < nFrameDatchCAN; j++) 
+			Reciev_CanDatch_All[i][j].data64 = 0;
+		
+		for(j = 0; j < nFrameABCAN; j++) 
+			Reciev_CanAB_All[i][j].data64 = 0;
+	}
 }	
 
 //-------------------------------------------------------------------------------------------------------------------------
