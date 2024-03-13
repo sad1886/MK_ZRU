@@ -220,7 +220,8 @@ void CAN1_IRQHandler()																														// Получает данн
 					bGet=0;
 					if (nMUK_ZRU==nMUK3_ZRU)	{																								// Только для МУК3
 						if ((adrTx1== AdrMUK3_BE)&&(cod!=2))	bGet=1;														// Принять пакет 1,3 от МУК3				 
-						if ((adrTx1 < AdrMUK3_BE)&&(cod==2))	bGet=1;														// Принять пакет 2   от МУК1, МУК2	 
+						nfRec_CanAK1 = okFrameAK; //для МК3 ЗРУ считаем, что пакет2 всегда пришел, в реальности будем его заполнять с учетом всех трех МК БЭ в функции GetDataFromCan
+						//if ((adrTx1 < AdrMUK3_BE)&&(cod==2))	bGet=1;														// Принять пакет 2   от МУК1, МУК2	 
 					}
 					else	{
 						if ((adrTx1+6)==AdrCAN1_ZRU)	bGet=1;																	// Для этого МУКа
@@ -370,7 +371,8 @@ void CAN2_IRQHandler()																														// Получает данн
 					bGet=0;
 					if (nMUK_ZRU==nMUK3_ZRU)	{																							// Только для МУК3
 						if ((adrTx2==(AdrMUK3_BE+1))&&(cod!=2))	bGet=1;												// Принять пакет 1,3 от МУК3				 
-						if ((adrTx2 < AdrMUK3_BE	 )&&(cod==2))	bGet=1;												// Принять пакет 2   от МУК1, МУК2	 
+						nfRec_CanAK2 = okFrameAK; //для МК3 ЗРУ считаем, что пакет2 всегда пришел, в реальности будем его заполнять с учетом всех трех МК БЭ в функции GetDataFromCan
+						//if ((adrTx2 < AdrMUK3_BE	 )&&(cod==2))	bGet=1;												// Принять пакет 2   от МУК1, МУК2	 
 					}
 					else	{
 						if ((adrTx2+6)==AdrCAN2_ZRU)	bGet=1;																	// Для этого МУКа

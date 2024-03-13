@@ -284,7 +284,6 @@ unsigned char bReadyWrk, cntReadyWrk;			// Разрешение на ответ�
 //-------------------------------------------------------------------------------------------------------------------------
 // Подготовка мажоритированных данных для телеметрии
 unsigned int MajorStatZRU(unsigned char * stat);
-
 //-------------------------------------------------------------------------------------------------------------------------
 //функция преобразует число с плавающей точкой в байт для последующей отправки по протоколу RS-485
 unsigned char CreateByteFromParam(float fv, float x0, float z)
@@ -312,6 +311,83 @@ float GetParamFromCANFrame(volatile union uBytes64 ArrayFrames[], unsigned int f
 	return tmp.Fdata;
 }
 //-------------------------------------------------------------------------------------------------------------------------
+//функция создает телеметрию 72АК для третьего МК ЗРУ
+//возвращает номер выбранного МК БЭ (0 или 1). Если возвращает 2, значит связи с обоими МК1 и МК2 нет и необходимо искусственно пересчитать всех параметры АК
+int CreateAKtelem()
+{
+	volatile float Uak_array_1[72], Uak_array_2[72], Uab1_sum, Uab2_sum; //телеметрия 72АК для МК1 и МК2 БЭ
+//	volatile float Uab_be[6]; //значения шести датчиков Uаб всех трех МК БЭ, первые два - МК1, вторые дав - МК2, третьи два - МК3
+	unsigned int ind, fr, i, true_ind;
+	int connect[3];
+	
+	true_ind = 2; //пока не начали, считаем, что связи с другими МК БЭ нет
+	
+	//определяем, есть ли связь с МК БЭ
+	connect[0] = ( (bNoWrkCAN & (3<<0) ) != (3<<0) ); //если хотя бы один из двух каналов работает
+	connect[1] = ( (bNoWrkCAN & (3<<2) ) != (3<<2) ); //если хотя бы один из двух каналов работает
+	connect[2] = ( (bNoWrkCAN & (3<<4) ) != (3<<4) ); //если хотя бы один из двух каналов работает
+	
+	if(connect[0] && connect[1]) //если есть связь и с МК1 и с МК2
+	{
+		//получаем телеметрию МК1
+		ind = 0; fr = 2;
+		Uak_array_1[ind++] = GetParamFromCANFrame(Reciev_CanAB_All[0], fr, 5); //АК1
+		Uak_array_1[ind++] = GetParamFromCANFrame(Reciev_CanAB_All[0], fr, 7); //АК2
+		for (fr = 3; fr <=19 ; fr++)
+		{
+			Uak_array_1[ind++] = GetParamFromCANFrame(Reciev_CanAB_All[0], fr, 1);		
+			Uak_array_1[ind++] = GetParamFromCANFrame(Reciev_CanAB_All[0], fr, 3);	
+			Uak_array_1[ind++] = GetParamFromCANFrame(Reciev_CanAB_All[0], fr, 5);	
+			Uak_array_1[ind++] = GetParamFromCANFrame(Reciev_CanAB_All[0], fr, 7);	
+		}
+		Uak_array_1[ind++] = GetParamFromCANFrame(Reciev_CanAB_All[0], 20, 1); //АК71
+		Uak_array_1[ind++] = GetParamFromCANFrame(Reciev_CanAB_All[0], 20, 3); //АК72	
+		
+		//получаем телеметрию МК2
+		ind = 0; fr = 2;
+		Uak_array_2[ind++] = GetParamFromCANFrame(Reciev_CanAB_All[1], fr, 5); //АК1
+		Uak_array_2[ind++] = GetParamFromCANFrame(Reciev_CanAB_All[1], fr, 7); //АК2
+		for (fr = 3; fr <=19 ; fr++)
+		{
+			Uak_array_2[ind++] = GetParamFromCANFrame(Reciev_CanAB_All[1], fr, 1);		
+			Uak_array_2[ind++] = GetParamFromCANFrame(Reciev_CanAB_All[1], fr, 3);	
+			Uak_array_2[ind++] = GetParamFromCANFrame(Reciev_CanAB_All[1], fr, 5);	
+			Uak_array_2[ind++] = GetParamFromCANFrame(Reciev_CanAB_All[1], fr, 7);	
+		}
+		Uak_array_2[ind++] = GetParamFromCANFrame(Reciev_CanAB_All[1], 20, 1); //АК71
+		Uak_array_2[ind++] = GetParamFromCANFrame(Reciev_CanAB_All[1], 20, 3); //АК72			
+		
+		//находим сумму всех АК для каждого первых двух МК БЭ
+		Uab1_sum = Uab2_sum = 0;
+		for(i = 0; i < 72; i++)
+		{
+			Uab1_sum += Uak_array_1[i];
+			Uab2_sum += Uak_array_2[i];
+		}
+		
+		//до вызова этой функции мы уже ранее посчитали наиболее правдоподобное значение Uab
+		if( fabs(Uab1_sum - Uab) < fabs(Uab2_sum - Uab) ) //если первый МК БЭ выдал сумму с меньшим отклонением
+			true_ind = 0; //то считаем, что его телеметрию мы должны брать за основу
+		else 
+			true_ind = 1; //иначе за основу берем телеметрию второго МК БЭ			
+	}
+	else
+	{
+		if(connect[0])
+			true_ind = 0;
+		else if(connect[1])
+			true_ind = 1;
+		else 
+			return 2; //если связи нет с обоими МК, то выходим с кодом 2
+	}
+	
+	//заполняем массивы МК3 ЗРУ данными одного из двух МК, тем самым имитируя полученную телеметрию
+	for(i = 0; i < nFrameABCAN; i++)
+		Reciev_CanAB[i].data64 = Reciev_CanAB_All[true_ind][i].data64;
+	
+	return true_ind;
+}
+//-------------------------------------------------------------------------------------------------------------------------
 //функция получает из КАНовских фреймов необходимые нам параметры
 void GetDataFromCan() 
 {	
@@ -320,6 +396,7 @@ void GetDataFromCan()
 	float sum;
 	float Uab1[3], Uab2[3], Uab_sr12[3], Uab_sr_123, num_sr_123, Uab_delta[3], Uab_maxdelta, Uab_sum; 
 	int connect[3], ind_of_maxdelta;
+	int mk3_ind;
 	
 	//определяем, есть ли связь с МК БЭ
 	connect[0] = ( (bNoWrkCAN & (3<<0) ) != (3<<0) ); //если хотя бы один из двух каналов работает
@@ -403,27 +480,40 @@ void GetDataFromCan()
 	T_array[3] = GetParamFromCANFrame(Reciev_CanDatch, 5, 7);
 	T_array[4] = GetParamFromCANFrame(Reciev_CanDatch, 6, 1);	
 	
-	//72 напряжения на АК
-	ind = 0; fr = 2;
-	Uak_array[ind++] = GetParamFromCANFrame(Reciev_CanAB, fr, 5); //АК1
-	Uak_array[ind++] = GetParamFromCANFrame(Reciev_CanAB, fr, 7);	//АК2
-	for (fr = 3; fr <=19 ; fr++)
-	{
-		Uak_array[ind++] = GetParamFromCANFrame(Reciev_CanAB, fr, 1);		
-		Uak_array[ind++] = GetParamFromCANFrame(Reciev_CanAB, fr, 3);	
-		Uak_array[ind++] = GetParamFromCANFrame(Reciev_CanAB, fr, 5);	
-		Uak_array[ind++] = GetParamFromCANFrame(Reciev_CanAB, fr, 7);	
-	}
-	Uak_array[ind++] = GetParamFromCANFrame(Reciev_CanAB, 20, 1); //АК71
-	Uak_array[ind++] = GetParamFromCANFrame(Reciev_CanAB, 20, 3);	//АК72
-	
 	//состояние РС
 	if (Reciev_CanDatch[9].b[2])	stat1[iMUK_ZRU] |= bPC;
 	else													stat1[iMUK_ZRU] &= ~bPC;	
 	
+	//72 напряжения на АК
+	mk3_ind = 0;
+	if(nMUK_ZRU==nMUK3_ZRU) //если имеем дело с МК3, то прежде чем работать по штатному алгоритму, необходимо имитировать телеметри. 72АК
+	{
+		mk3_ind = CreateAKtelem();
+	}
+	if( (nMUK_ZRU==nMUK3_ZRU) && (mk3_ind == 2) ) //если имеем дело с МК3 ЗРУ и связи с первыми двумя МК БЭ нет
+	{
+		Uak_array[0] = Uab/72; //просто берем напряжение и делим его на 72
+		for(i = 0; i < 72; i++)
+			Uak_array[i] = Uak_array[0];
+	}
+	else //во всех остальных случаях работаем штатно
+	{
+		ind = 0; fr = 2;
+		Uak_array[ind++] = GetParamFromCANFrame(Reciev_CanAB, fr, 5); //АК1
+		Uak_array[ind++] = GetParamFromCANFrame(Reciev_CanAB, fr, 7);	//АК2
+		for (fr = 3; fr <=19 ; fr++)
+		{
+			Uak_array[ind++] = GetParamFromCANFrame(Reciev_CanAB, fr, 1);		
+			Uak_array[ind++] = GetParamFromCANFrame(Reciev_CanAB, fr, 3);	
+			Uak_array[ind++] = GetParamFromCANFrame(Reciev_CanAB, fr, 5);	
+			Uak_array[ind++] = GetParamFromCANFrame(Reciev_CanAB, fr, 7);	
+		}
+		Uak_array[ind++] = GetParamFromCANFrame(Reciev_CanAB, 20, 1); //АК71
+		Uak_array[ind++] = GetParamFromCANFrame(Reciev_CanAB, 20, 3);	//АК72
+	}
 	
-	//расчеты
 	
+	//расчеты	
 	//давление
 	P = 0; Pmax = 0; Pmin = 0; dP = 0; 
 	sum = 0; cnt = 0;
@@ -3162,28 +3252,29 @@ int main(void)
 		}									
 
 		//.......................................................... Контроль обновления данных телеметрии.....................
+		//МК ЗРУ больше не подтверждают прием пакетов телеметрии от МК БЭ, поэтому функции CAN_SendConf_1 закомментированы
 		if (nfRec_CanDatch1 == okFrameDatch)	{															// Получены все фреймы
 			add_nbuf = 0;
-			CAN_SendConf_1(1);																								// Подтверждение: Даные от МУК БЭ получены
+			//CAN_SendConf_1(1);																								// Подтверждение: Даные от МУК БЭ получены
 			nfRec_CanDatch1 = 0;																							// Сброс битов получения фреймов
 			updateD1 = 1;																											// Установить флаг "Обновление данных от МУК БЭ"
 		}
 		if (nfRec_CanAK1 == okFrameAK)	{																		// Получены все фреймы
 			add_nbuf = 1;
-			CAN_SendConf_1(2);																								// Подтверждение: Даные от МУК БЭ получены
+			//CAN_SendConf_1(2);																								// Подтверждение: Даные от МУК БЭ получены
 			nfRec_CanAK1 = 0;																									// Сброс битов получения фреймов
 			updateD2 = 1;																											// Установить флаг "Обновление данных от МУК БЭ"
 		}
 		
 		if (nfRec_CanDatch2 == okFrameDatch)	{															// Получены все фреймы
 			add_nbuf = 0;
-			CAN_SendConf_2(1);																								// Подтверждение: Даные от МУК БЭ получены
+			//CAN_SendConf_2(1);																								// Подтверждение: Даные от МУК БЭ получены
 			nfRec_CanDatch2 = 0;																							// Сброс битов получения фреймов
 			updateD1 = 1;																											// Установить флаг "Обновление данных от МУК БЭ"
 		}
 		if (nfRec_CanAK2 == okFrameAK)	{																		// Получены все фреймы
 			add_nbuf = 1;
-			CAN_SendConf_2(2);																								// Подтверждение: Даные от МУК БЭ получены
+			//CAN_SendConf_2(2);																								// Подтверждение: Даные от МУК БЭ получены
 			nfRec_CanAK2 = 0;																									// Сброс битов получения фреймов
 			updateD2 = 1;																											// Установить флаг "Обновление данных от МУК БЭ"
 		}
