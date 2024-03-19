@@ -172,13 +172,14 @@
 #define vmCount5				300									// 5 мин для паузы (5*60)
 #define vmCount2				120									// 2 мин для паузы (2*60)
 #define vmCount1				60									// 5 мин для паузы (5*60)
+#define vsCount1				1										// 5 сек для расчёта C и W
 #define vsCount5				5										// 5 сек для расчёта C и W
 #define vsCount10				10									// 15 сек для расчёта C и W
 #define vsCount15				15									// 15 сек для расчёта C и W
 #define vsCount20				20									// 20 сек для задержки повтора 3 раза алгоритма заряда
 #define vsCount40				40									// 40 сек для задержки
 
-#define dt1							1										// Дельта времени 5 сек при разряде
+#define dt1							1										// Дельта времени 1 сек при разряде
 #define dt5							5										// Дельта времени 5 сек при разряде
 #define dt20						20									// Дельта времени 20 сек при ТВЦ
 #define timeRazr 				108000							// timeRazr = 108000сек (30*60*60)
@@ -192,51 +193,17 @@
 //#define vhCount2				2										// 2 сек
 //**************************************************************************************************************************
 //--------------------------- Шаги состояния процесса ТВЦ -----------------------------------------------------------------
-
-#define bInit_TVC						0x01
-#define	bOtklKomp						0x02
-#define	bWaitOtklKomp				0x03
-#define	bWaitRazryd					0x04
-#define	bVkl_Tst_Zarayd			0x05
-#define	bWaitVkl_Tst_Zarayd	0x06
-#define	bVkl_Tst_Zarayd_On	0x07
-#define	bWeitMKs						0x27
-#define	bVkl_ZaprZarayd			0x08
-#define	bWaitOtkl_Zarayd		0x09
-#define	bVkl_Test_Razr			0x0A
-#define	bWaitVkl_Test_Razr	0x0B
-#define	bTst_T_Razryda			0x0C
-#define	bWaitOtkl_Razrayd		0x0D	
-#define	bTst_T_NVAB					0x0E
-#define	bRepeatRazr					0x0F
-
-#define	bWait_2							0x11
-#define	bVkl_RS							0xA4	
-#define	bWaitVkl_RS					0x12	
-#define	bCountTimeRazr			0x13
-#define	bOtkl_RS						0xA3
-#define	bWaitOtkl_RS				0x14
-#define	bVklKomp						0x15
-#define	bWaitVklKomp				0x16
-#define	bZarydComp					0x17
-#define	bWaitOtklKomp2			0x18
-#define	bVkl_Tst_Zarayd_On2	0x19
-#define	bVklKomp2						0x1A
-#define	bWaitVklKomp2				0x1B
-#define	bZarydComp2					0x1C
-#define	bWaitVkl_Test_Razr8	0xA2
-
-#define	bTest_Vosst_et6_command		0xB0						// Вспомогательный шаг для восстановления 6-го этапа тестирования, выполнение команд
-#define	bTest_Vosst_et6_checkI		0xB1						// Вспомогательный шаг для восстановления 6-го этапа тестирования, контроль тока после выполнения команд
-
-#define	bTest_Vosst_et7_command		0xC0						// Вспомогательный шаг для восстановления 7-го этапа тестирования, выполнение команд
-#define	bTest_Endtemp       0xB2   ////////////	               // Вспомогательный шаг для синхронизации выхода из 1-го этапа
-#define	bVkl_Tst_Zarayd9		0x1E						// Включение заряда на 9-ом этапе ТВЦ
-#define	bWaitVkl_Tst_Zar9		0x1F						// Включение заряда на 9-ом этапе ТВЦ
-#define	bVkl_Tst_Zar_On9		0x20
-#define	bWaitOtkl_Tst_Zar9	0x21						// Отключение заряда на 9-ом этапе ТВЦ
-#define bInitEnd_Alg_TVC		0x4A
-#define bEnd_Alg_TVC				0xA1						// Конец алгоритма ТВЦ
+enum TestSteps {st_t_InitTest = 0, 
+								st_t_1_01, st_t_1_02, st_t_1_03, st_t_1_04, st_t_1_05, st_t_1_06, st_t_1_07, st_t_1_08,
+								st_t_2_01, st_t_2_02, st_t_2_03, st_t_2_04, st_t_2_05, st_t_2_06, st_t_2_07, st_t_2_08, st_t_2_09, st_t_2_10,
+								st_t_3_01, st_t_3_02, 
+								st_t_4_01, st_t_4_02, st_t_4_03, st_t_4_04, st_t_4_05, st_t_4_06, st_t_4_07, st_t_4_08, st_t_4_09, st_t_4_10,
+								st_t_5_01, st_t_5_02, st_t_5_03, st_t_5_04, st_t_5_05, st_t_5_06, st_t_5_07, st_t_5_08, st_t_5_09, st_t_5_10,
+								st_t_6_01, st_t_6_02, st_t_6_03, st_t_6_04, 
+								st_t_7_01, st_t_7_02, st_t_7_03, 
+								st_t_8_01, st_t_8_02, st_t_8_03, st_t_8_04, st_t_8_05, st_t_8_06, st_t_8_07, st_t_8_08, st_t_8_09, st_t_8_10, st_t_8_11, st_t_8_12, st_t_8_13, st_t_8_14,
+								st_t_9_01, st_t_9_02, st_t_9_03, st_t_9_04, st_t_9_05, 
+								st_t_InitEnd_Alg_TVC};
 
 //--------------------------- Шаги состояния процессов заряд-разряд -------------------------------------------------------
 enum ZarSteps {st_InitZarayd = 100, st_OtklKomp, st_WaitOtklKomp, st_Tst_P_NVAB, st_OtklZar_1, st_Vkl_Zarayd, st_Tst_T_NVAB_1, st_OtklZar_2, st_Tst_P_NVAB_2, st_Vkl_Zarayd_On, st_OtklZar_3, st_ViborUst};
@@ -376,7 +343,7 @@ enum PodzarSteps {st_p_InitPodzar = 300, st_p_OtklPodzar_1, st_p_Pnuz_1, st_p_Vk
 
 //unsigned char stat3[3];
 // байт 3 ========================================================================
-#define bready							0x80						//выход из условия в 4 этапе
+#define br									0x80						//резерв
 #define bZaprZar						0x40						//Запрет Заряда
 #define bZaprRazr						0x20						//Запрет Разряда
 #define vklZRU							0x10						//Включить ЗРУ команда
@@ -388,14 +355,26 @@ enum PodzarSteps {st_p_InitPodzar = 300, st_p_OtklPodzar_1, st_p_Pnuz_1, st_p_Vk
 //unsigned char stat4[3];
 // байт 4 ========================================================================
 //весь байт необходим для уникальных синхронизаций в ТВЦ
-#define bready8							0x80						//
-#define bready7							0x40						//прекращение начального заряда
-#define bready6							0x20						//выход из условия 4-ого разряда
-#define bready5							0x10						//выход из условия 3-ого разряда
-#define bready4							0x08						//выход из условия 2-ого разряда
-#define bready3							0x04						//выход из условия 1-ого разряда
-#define bready2							0x02						//выход из условия в 7 этапе
-#define bready1							0x01						//выход из условия в 6 этапе
+#define br8							0x80						//
+#define br7							0x40						//
+#define br6							0x20						//
+#define br5							0x10						//
+#define br4							0x08						//
+#define br3							0x04						//
+#define br2							0x02						//
+#define br1							0x01						//
+
+//unsigned char stat5[3];
+// байт 5 ========================================================================
+//весь байт необходим для уникальных синхронизаций в ТВЦ
+#define br16							0x80						//
+#define br15							0x40						//
+#define br14							0x20						//
+#define br13							0x10						//
+#define br12							0x08						//
+#define br11							0x04						//
+#define br10							0x02						//
+#define br9								0x01						//
 
 #define tRestData						60							// 1 мин время ожидания прихода повторного флага на восстановление данных
 #define ctimeGetcmd					2								// Время прихода (в сек) команды БЦУ в ЗРУ для 3-х МУКов, чтобы собрался мажоритар
