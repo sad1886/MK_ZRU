@@ -23,7 +23,10 @@ extern volatile unsigned char mode;														// Текущий режим р
 //extern volatile unsigned int Errors;													// Слово состояния ошибок аппаратуры
 extern volatile unsigned char iUst;														// Индекс текущей уставки 0..nUst-1
 
-extern unsigned char stat1[3], stat2[3], stat3[3], stat4[3];
+extern unsigned char stat1[3], stat2[3], stat3[3], stat4[3], stat5[3];
+
+extern unsigned char mk_be_osn[3];
+extern unsigned char mk_be_res[3];
 
 extern volatile float	curW_zar,																// Текущ заряд НВАБ
 											W_raz,																	// Энергоёмк
@@ -335,12 +338,14 @@ void CAN_SendCmd(unsigned char adr_MUK_Z, unsigned char dlc, unsigned char cmd)
 void CAN_SendStatusZRU(void)
 //-------------------------------------------------------------------------------------------------------------------------------------------------
 {	int lbuf_TX = nbuf_TX;
+	unsigned char DATAH_2; //байт, который будет отправлен вторым в DATAH
 	
 	if(bRestData_indiv)
 		stat3[iMUK_ZRU] |= RestData; // Флаг на восстановление данных, обмениваемся индивидуальными значениями между МУКами
 	else
-		stat3[iMUK_ZRU] &= ~RestData; // Флаг на восстановление данных, обмениваемся индивидуальными значениями между МУКами
+		stat3[iMUK_ZRU] &= ~RestData; // Флаг на восстановление данных, обмениваемся индивидуальными значениями между МУКами	
 	
+	DATAH_2 = (mk_be_res[iMUK_ZRU] << 1) | mk_be_osn[iMUK_ZRU]; //подготавливаем байт для отправки, в первом бите информация о связи по основному каналу с МК БЭ, во втором бите - по резервному
 	
 	// Очистим буфер
 	MDR_CAN1->CAN_BUF[lbuf_TX].ID 				=0;
@@ -349,10 +354,10 @@ void CAN_SendStatusZRU(void)
 	
 	// заполним буфер
  	MDR_CAN1->CAN_BUF[lbuf_TX].ID = nPrior_ZRU<< 24 | AdrCAN1_ZRU<< 20 | nMUKs_BE<< 16 | CAN_CopyCmd<< 12 | 1<< 6 | 1;
-	MDR_CAN1->CAN_BUF[lbuf_TX].DLC = (1 << CAN_IDE) | (1<< CAN_SSR) | (1<< CAN_R1) | 4;								// Длина передаваемых данных в пакете (в байтах)
+	MDR_CAN1->CAN_BUF[lbuf_TX].DLC = (1 << CAN_IDE) | (1<< CAN_SSR) | (1<< CAN_R1) | 6;								// Длина передаваемых данных в пакете (в байтах)
 
 	MDR_CAN1->CAN_BUF[nbuf_TX].DATAL = (stat4[iMUK_ZRU]<<24)|(stat3[iMUK_ZRU]<<16)|(stat2[iMUK_ZRU]<<8)|stat1[iMUK_ZRU];		// Четвёртый..первый байт в пакете
-	MDR_CAN1->CAN_BUF[lbuf_TX].DATAH = 0;
+	MDR_CAN1->CAN_BUF[lbuf_TX].DATAH = (DATAH_2<<8) | stat5[iMUK_ZRU];
 	// отправка пакета
 	MDR_CAN1->BUF_CON[lbuf_TX]	= (1 << CAN_BUF_EN)|(1 << CAN_TX_REQ);																// Запрос на отправку сообщения, установить бит TX_REQ
 	
@@ -364,11 +369,10 @@ void CAN_SendStatusZRU(void)
 	MDR_CAN2->CAN_BUF_FILTER[lbuf_TX].MASK=0;		MDR_CAN2->CAN_BUF_FILTER[lbuf_TX].FILTER =0;
 	// заполним буфер
  	MDR_CAN2->CAN_BUF[lbuf_TX].ID = nPrior_ZRU<< 24 | (AdrCAN2_ZRU)<< 20 | nMUKs_BE<< 16 | CAN_CopyCmd<< 12 | 1<< 6 | 1;
-	MDR_CAN2->CAN_BUF[lbuf_TX].DLC = (1 << CAN_IDE) | (1<< CAN_SSR) | (1<< CAN_R1) | 4;								// Длина передаваемых данных в пакете (в байтах)
-
-//	MDR_CAN2->CAN_BUF[lbuf_TX].DATAL =  (stat3[iMUK_ZRU]<<16)|(stat2[iMUK_ZRU]<<8)|stat1[iMUK_ZRU];		// Четвёртый..первый байт в пакете;																													// Код подтверждаемой команды
-	MDR_CAN2->CAN_BUF[lbuf_TX].DATAL =  (stat4[iMUK_ZRU]<<24)|(stat3[iMUK_ZRU]<<16)|(stat2[iMUK_ZRU]<<8)|stat1[iMUK_ZRU];		// Четвёртый..первый байт в пакете;																													// Код подтверждаемой команды
-	MDR_CAN2->CAN_BUF[lbuf_TX].DATAH = 0;
+	MDR_CAN2->CAN_BUF[lbuf_TX].DLC = (1 << CAN_IDE) | (1<< CAN_SSR) | (1<< CAN_R1) | 6;								// Длина передаваемых данных в пакете (в байтах)
+																												// Код подтверждаемой команды
+	MDR_CAN2->CAN_BUF[lbuf_TX].DATAL = (stat4[iMUK_ZRU]<<24)|(stat3[iMUK_ZRU]<<16)|(stat2[iMUK_ZRU]<<8)|stat1[iMUK_ZRU];		// Четвёртый..первый байт в пакете;																													// Код подтверждаемой команды
+	MDR_CAN2->CAN_BUF[lbuf_TX].DATAH = (DATAH_2<<8) | stat5[iMUK_ZRU];
 	// отправка пакета
 	MDR_CAN2->BUF_CON[lbuf_TX]	= (1 << CAN_BUF_EN)|(1 << CAN_TX_REQ);																// Запрос на отправку сообщения, установить бит TX_REQ
 }

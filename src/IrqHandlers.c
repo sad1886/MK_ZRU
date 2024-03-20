@@ -52,6 +52,7 @@ extern volatile union uBytes64 Reciev_CanAB_All[nMUKBE][nFrameABCAN];						// Т
 extern volatile unsigned char bNoWrkCAN;																	// 1 - CAN не работает, 0 - CAN  работает
 
 int cntSec_noCAN[6];																											// счётчики секунд неработоспособности CAN (1..6)
+int cntSec_noMK_ZRU[3];																											// счётчики секунд отсутствия связи с другим МК ЗРУ
 
 //int clrECAN[6]= {0x3e, 0x3d, 0x3b, 0x37, 0x2f, 0x1f};											// маски сброса битов неработоспособности соотв CAN
 
@@ -121,7 +122,11 @@ extern unsigned char	secTimeOutCmd, AddSec;
 extern int iMUK_ZRU;
 extern volatile unsigned char mode;																				// Текущий режим работы контроллера, последний режим работы
 
-extern unsigned char stat1[3],stat2[3],stat3[3],stat4[3];													// Сост ЗРУ14, Сост ЗРУ16, Сост ЗРУ16.																		14-15
+extern unsigned char stat1[3],stat2[3],stat3[3],stat4[3],stat5[3];													// Сост ЗРУ14, Сост ЗРУ16, Сост ЗРУ16.																		14-15
+
+extern unsigned char mk_be_osn[3];
+extern unsigned char mk_be_res[3];
+
 extern volatile unsigned char bSendStatus;																// послать байт состояния МУК ЗРУ
 extern volatile unsigned char bRestData, vRestData;												// 1 - восстановить данные
 
@@ -280,10 +285,17 @@ void CAN1_IRQHandler()																														// Получает данн
 						case 12:	i = 2;		break;						// МУК3
 						}
 						if (i != iMUK_ZRU)	{
+							cntSec_noMK_ZRU[i] = 0; //обнуляем счетчик секунд отсутствия связи с этим МК
+							
 							stat1[i] = MDR_CAN1->CAN_BUF[nbuf_RX].DATAL;
 							stat2[i] = MDR_CAN1->CAN_BUF[nbuf_RX].DATAL >> 8;
 							stat3[i] = MDR_CAN1->CAN_BUF[nbuf_RX].DATAL >> 16;
 							stat4[i] = MDR_CAN1->CAN_BUF[nbuf_RX].DATAL >> 24;
+							
+							stat5[i] = MDR_CAN1->CAN_BUF[nbuf_RX].DATAH;
+													
+							mk_be_osn[i] = ((MDR_CAN1->CAN_BUF[nbuf_RX].DATAH >> 8) >> 0) & 0x1;	//получаем информацию о связи i-го МУКа с БЭ  
+							mk_be_res[i] = ((MDR_CAN1->CAN_BUF[nbuf_RX].DATAH >> 8) >> 1) & 0x1;	//получаем информацию о связи i-го МУКа с БЭ  
 
 							// Флаг на восстановление данных, общий. Равен 1 если хотя бы в одном из трех МУКов индивидуальный флаг равен 1
 							// Учитывая, что в обмене между МУКами участвует индивидуальный флаг - нет необходимости организовывать паузу с помощью vRestData, tRestData
@@ -432,10 +444,17 @@ void CAN2_IRQHandler()																														// Получает данн
 						case 12:	i = 2;		break;						// МУК3
 						}
 						if (i != iMUK_ZRU)	{
+							cntSec_noMK_ZRU[i] = 0; //обнуляем счетчик секунд отсутствия связи с этим МК
+							
 							stat1[i] = MDR_CAN2->CAN_BUF[nbuf_RX].DATAL;
 							stat2[i] = MDR_CAN2->CAN_BUF[nbuf_RX].DATAL >> 8;
 							stat3[i] = MDR_CAN2->CAN_BUF[nbuf_RX].DATAL >> 16;
 							stat4[i] = MDR_CAN2->CAN_BUF[nbuf_RX].DATAL >> 24;
+							
+							stat5[i] = MDR_CAN2->CAN_BUF[nbuf_RX].DATAH;
+							
+							mk_be_osn[i] = ((MDR_CAN2->CAN_BUF[nbuf_RX].DATAH >> 8) >> 0) & 0x1;	//получаем информацию о связи i-го МУКа с БЭ  
+							mk_be_res[i] = ((MDR_CAN2->CAN_BUF[nbuf_RX].DATAH >> 8) >> 1) & 0x1;	//получаем информацию о связи i-го МУКа с БЭ  
 
 							// Флаг на восстановление данных, общий. Равен 1 если хотя бы в одном из трех МУКов индивидуальный флаг равен 1
 							// Учитывая, что в обмене между МУКами участвует индивидуальный флаг - нет необходимости организовывать паузу с помощью vRestData, tRestData
