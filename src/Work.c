@@ -41,6 +41,9 @@ enum RazSteps StepAlgortmRazr;
 enum PodzarSteps StepAlgortmPodzar;
 
 uint32_t bitNotZar, bitNotRaz;																// Состояние проводных линий
+uint32_t Prev_bitNotZar, Prev_bitNotRaz;											// предыдущее состояние проводных линий, необходимо чтобы отслеживать было ли мигание
+uint32_t ZaprZarProv, ZaprRazrProv; 													// состояние проводных запретов заряда, разряда. Формируется на основе "мигания" соответствующих проводных линий
+uint32_t cntZarProv, cntRazrProv; //счетчики секунд отсутствия мигания проводных линий запретов
 volatile unsigned char bNoWrkCAN;															// 0 - CAN работает, 1 - CAN не работает
 volatile unsigned char bRestData, vRestData;									// 1 - восстановить данные
 volatile unsigned char bRestData_indiv;												// запрос на восстановление данных, индивидуальный
@@ -276,25 +279,11 @@ void pOtkl_RS (int bWait)
 }
 
 // ------------------------------------------------------------------------------------------------------------------------------------------------
+//функция считывает состояние проводных линий, отвечающих за запреты
 void pNotCan (void)																						// При отказе 2-х CAN от БЭ управление проводными сигналами
-{	//uint32_t bitNotZar, bitNotRaz;
-	
-//	bitNotRaz = 0x10 & MDR_PORTA->RXTX;													// Запр разряд 29/РА4
-//	bitNotZar = 0x01 & MDR_PORTB->RXTX;													// Запр заряда 30/РВ0
-//
-//	if (bitNotRaz)	MDR_PORTC->RXTX |= (bitNotRaz>>4);					// Установить текущее состояние Вкл_Запр_РАЗР 19/PC0
-//	else						MDR_PORTC->RXTX &= 0xfffe;									//~(bitNotRaz>>4);
-//	if (bitNotZar)	MDR_PORTC->RXTX |= (bitNotZar<<1);					// Установить текущее состояние Вкл_Запр_ЗАР АБ 20/PC1
-//	else						MDR_PORTC->RXTX &= 0xfffd;									//~(bitNotZar<<1);					
-
-// 	
+{	
 	bitNotZar = 0x080 & MDR_PORTB->RXTX;												// Запр заряда 44/РВ7
 	bitNotRaz = 0x100 & MDR_PORTB->RXTX;												// Запр разряд 45/РB8
-
-//	if (bitNotRaz)	MDR_PORTC->RXTX |= (bitNotRaz>>8);					// Установить текущее состояние Вкл_Запр_РАЗР 19/PC0
-//	else						MDR_PORTC->RXTX &= 0xfffe;									//
-//	if (bitNotZar)	MDR_PORTC->RXTX |= (bitNotZar>>6);					// Установить текущее состояние Вкл_Запр_ЗАР АБ 20/PC1
-//	else						MDR_PORTC->RXTX &= 0xfffd;									//
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------
