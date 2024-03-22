@@ -439,6 +439,7 @@ float abs_f (float vf);
 void Var_init(void);												// Инициализация переменных
 void EnableIRQ_ADC_CAN_UART (void);
 
+void ResetAvars(void); //сброс аварийных сообщений
 //--------------------------------------------------------------------------------------------------------------------------
 void pVkl_Shim_ZRU (int bWait);					void pOtkl_Shim_ZRU (int bWait);				// 1 
 void pVkl_KOMP (void);									void pOtkl_KOMP (void);									// 2

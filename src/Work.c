@@ -50,13 +50,11 @@ volatile unsigned char bRestData_indiv;												// запрос на восс
 volatile unsigned char bSendStatus;														// послать байт состояния МУК ЗРУ
 
 //--------------------------- ADC переменные ------------------------------------------------------------------------------
-extern float U_ADC[nParams];
-extern float Vals_ZRU[nParams];																// Массив реальных значений измеренных параметров ЗРУ
-extern float Vals_ZRUold[nParams];														// Массив реальных значений измеренных параметров ЗРУ
-
-float aI_razr, aI_razrOld, aI_zar;
+float aI_razr_dt[2], aI_zar_dt[2];														// Значения двух датчиков тока, передаваемые в телеметрию
+float aI_razr, aI_razrOld, aI_zar;														// Значение тока, используемое в алгоритмах
 float vU_zru, vU_zru_Old;																			// Uаб измеренное самим ЗРУ, а также предыдущее значение, необходимое для расчета W
-union uBytesFloat16 aIrazr, aIzar;														// Для передачи по CAN в БЭ
+float dTemp1_zru, dTemp2_zru;																	// датчики температуры
+//union uBytesFloat16 aIrazr, aIzar;													// Для передачи по CAN в БЭ
 
 volatile unsigned char OkDataADC;															// Значение канала АЦП готово
 volatile int iadc;																						// Указатель на текущий канал измерения АЦП
@@ -485,7 +483,8 @@ void ADC_GO (int nadc)
 // Измерение напряжения АЙП (PD0, PD1, PD2, PD4, PD6, PD7), iadc=0,1,2,4,6,7
 //........................... КОД c 14.07.20..........................................
 void PutParamADC (void)																																				// С 14.07.20
-{		int i;	float delta;
+{		
+	//	float delta; //переменная нужна для борьбы с резкими изменениями параметров
 	
 	/*.....................................................................................
 	* ТАБ1-1	Измерение тока АБ1							13/PD1		0…-30/+35 А												*
@@ -495,135 +494,126 @@ void PutParamADC (void)																																				// С 14.07.20
 	* ТМП2		Измерение температуры корпуса 	18/PD7		0…+90 		°С											* 
 	......................................................................................*/	
 
-	U_ADC[iadc] = Uadc;
-
 	switch (iadc)	{
-		case 1:
-		case 2:
-			if (Uadc < cUsm[iMUK_ZRU][iadc-1])	{																																// З А Р Я Д
-				//Vals_ZRU[iadc-1] = Uadc;																																				// Напряжение АЦП
-				Vals_ZRU[iadc-1] = KoefZar[iMUK_ZRU][iadc-1] * (cUsm[iMUK_ZRU][iadc-1]-Uadc);											// Реальные значения I заряда
+		case 1: //датчик тока 1
+		case 2: //датчик тока 2
+			if (Uadc < cUsm[iMUK_ZRU][iadc-1])																																	// З А Р Я Д
+			{	
+				aI_zar_dt[iadc-1] = KoefZar[iMUK_ZRU][iadc-1] * (cUsm[iMUK_ZRU][iadc-1]-Uadc); // записываем полученное значение тока с учетом тарировки
 				// Определение статуса ЗРУ
-				if ((Vals_ZRU[0] > fNul)||(Vals_ZRU[1] > fNul))	{																									// fNul = 0.8
+				if ((aI_zar_dt[0] > fNul)||(aI_zar_dt[1] > fNul))	{																									// если ток выше порога fNul
 					if (mode_Razryad != 0) 
 					{
-						StepAlgortmZar = st_InitZarayd;																																//начинаем алгоритм заново
-						//в момент перехода из одного режима в другой обнуляем эти флаги
-						//stat2[iMUK_ZRU] = 0;
-						//stat3[iMUK_ZRU] &= ~(errNoOgrTokRazr|errNoOgrTokZar|errPrevDopustT);  											
-						stat2[iMUK_ZRU] &= ~(errNoVklRazr|errNoOtklRazr);																						// Сброс аварийных сообщений разряда
-						stat3[iMUK_ZRU] &= ~(errNoOgrTokRazr|errPrevDopustT);  											
+						StepAlgortmZar = st_InitZarayd;																																//начинаем алгоритм заново						
+						ResetAvars();	//в момент перехода из одного режима в другой обнуляем эти флаги				
+						//stat2[iMUK_ZRU] &= ~(errNoVklRazr|errNoOtklRazr);																						// Сброс аварийных сообщений разряда
+						//stat3[iMUK_ZRU] &= ~(errNoOgrTokRazr|errPrevDopustT);  											
 					} //если был разряд, значит нужно начать заново алгоритм заряда
 					mode_Razryad = 0; //больше нет разряда								
 					mode_Zaryad = 1; //теперь у нас заряд
 					C_raz = 0;	W_raz = 0;
 				}	
 				// Получение значений Зарядного и Разрядного токов
-				if (Vals_ZRU[iadc-1]<0.5)	Vals_ZRU[iadc-1] = 0;
-				aIzar.Fdata = Vals_ZRU[iadc-1];																																		// Для передачи по CAN в БЭ
-				aI_zar = Vals_ZRU[iadc-1];
-				aI_razr = 0;	Vals_ZRU[iadc-1+2] = aI_razr;																												// Для телеметрии
+				if (aI_zar_dt[iadc-1]<0.5)	aI_zar_dt[iadc-1] = 0; //если значение ниже порога, то считаем ток нулевым
+				aI_zar = (aI_zar_dt[0] + aI_zar_dt[1])/2;
+				aI_razr = 0;
 			}																																																		
-			else	{																																															// Р А З Р Я Д
-				//Vals_ZRU[iadc-1+2] = Uadc;																																			// Напряжение АЦП
-				Vals_ZRU[iadc-1+2] = KoefRazr[iMUK_ZRU][iadc-1] * (Uadc-cUsm[iMUK_ZRU][iadc-1]);									// Реальные значения I разряда
+			else
+			{																																															// Р А З Р Я Д
+				aI_razr_dt[iadc-1] = KoefRazr[iMUK_ZRU][iadc-1] * (Uadc-cUsm[iMUK_ZRU][iadc-1]);									// Реальные значения I разряда
 				// Определение статуса ЗРУ
-				if ((Vals_ZRU[2] > fNul)||(Vals_ZRU[3] > fNul))	{
+				if ((aI_razr_dt[0] > fNul)||(aI_razr_dt[1] > fNul))																					// если ток выше порога fNul
+				{
 					if (mode_Zaryad != 0) 
 					{
 						StepAlgortmRazr = st_InitRazryad;																															//начинаем алгоритм заново
-						//в момент перехода из одного режима в другой обнуляем эти флаги							
-						//stat2[iMUK_ZRU] = 0;
-						//stat3[iMUK_ZRU] &= ~(errNoOgrTokRazr|errNoOgrTokZar|errPrevDopustT);  											
-						stat2[iMUK_ZRU] &= ~(errNoVklZar|errNoOtklZar);																							// Сброс аварийных сообщений заряда
-						stat3[iMUK_ZRU] &= ~(errNoOgrTokZar|errPrevDopustT);  											
+						ResetAvars();	//в момент перехода из одного режима в другой обнуляем эти флаги					
+						//stat2[iMUK_ZRU] &= ~(errNoVklZar|errNoOtklZar);																							// Сброс аварийных сообщений заряда
+						//stat3[iMUK_ZRU] &= ~(errNoOgrTokZar|errPrevDopustT);  											
 					} //если был заряд, значит нужно начать заново алгоритм разряда
 					mode_Zaryad = 0; //больше нет заряда						
 					mode_Razryad = 1; //теперь у нас разряд 
 				}
 				// Получение значений Зарядного и Разрядного токов
-				if (Vals_ZRU[iadc-1+2]<0.5)		Vals_ZRU[iadc-1+2] = 0;
-				aIrazr.Fdata = Vals_ZRU[iadc-1+2];
-				aI_razr = Vals_ZRU[iadc-1+2];
-				aI_zar = 0;		Vals_ZRU[iadc-1] = aI_zar;
+				if (aI_razr_dt[iadc-1]<0.5)		aI_razr_dt[iadc-1] = 0;
+				aI_razr = (aI_razr_dt[0] + aI_razr_dt[1])/2;
+				aI_zar = 0;	
 			}																																																		
-			if (iadc == 2)	iadc++;																																							// Пропуск канала измерения АЦП №3
 			break;
 		
-		case 4:		i = iadc-4;		iadc++;																																				// Пропуск канала измерения АЦП №5
-			//Uadc = 3.5;
-			Vals_ZRU[iadc-1] = KoefUABT[iMUK_ZRU][i] * Uadc + dUABT[iMUK_ZRU][i];																// Реальные значения U
-			if (mode_Zaryad)		Vals_ZRU[iadc-1] -= aI_zar * KoefIzarABT[iMUK_ZRU];								// Корекция значения U при заряде
-			if (mode_Razryad)		Vals_ZRU[iadc-1] += aI_razr* KoefIrazABT[iMUK_ZRU];								// Корекция значения U при разряде
-			vU_zru = Vals_ZRU[iadc-1];																															// Uаб измеренное самим ЗРУ
+		case 4:	
+			vU_zru = Koef_k_Uab_zru[iMUK_ZRU] * Uadc + Koef_b_Uab_zru[iMUK_ZRU];																// Реальные значения U
+//			if (mode_Zaryad)		Vals_ZRU[iadc-1] -= aI_zar * KoefIzarABT[iMUK_ZRU];								// Корекция значения U при заряде
+//			if (mode_Razryad)		Vals_ZRU[iadc-1] += aI_razr* KoefIrazABT[iMUK_ZRU];								// Корекция значения U при разряде
 			break;
 			
-		case 6:		i = iadc-5;		
-			Vals_ZRU[iadc+1] = KoefUABT[iMUK_ZRU][i] * Uadc + dUABT[iMUK_ZRU][i];																// Реальные значения T1
-			if (mode_Zaryad)		Vals_ZRU[iadc-1] -= aI_zar * KoefIzarT[iMUK_ZRU][iadc-6];					// Корекция Т1
-			if (mode_Razryad)		Vals_ZRU[iadc-1] += aI_razr* KoefIrazT[iMUK_ZRU][iadc-6];					// Корекция Т1
+		case 6:				
+			dTemp1_zru = Koef_k_dtemp1[iMUK_ZRU] * Uadc + Koef_b_dtemp1[iMUK_ZRU];																// Реальные значения T1
+//			if (mode_Zaryad)		Vals_ZRU[iadc-1] -= aI_zar * KoefIzarT[iMUK_ZRU][iadc-6];					// Корекция Т1
+//			if (mode_Razryad)		Vals_ZRU[iadc-1] += aI_razr* KoefIrazT[iMUK_ZRU][iadc-6];					// Корекция Т1
 		break;
-		case 7:		i = iadc-5;		
-			Vals_ZRU[iadc-1] = KoefUABT[iMUK_ZRU][i] * Uadc + dUABT[iMUK_ZRU][i];																// Реальные значения T2
-			if (mode_Zaryad)		Vals_ZRU[iadc-1] -= aI_zar * KoefIzarT[iMUK_ZRU][iadc-6];					// Корекция Т2
-			if (mode_Razryad)		Vals_ZRU[iadc-1] += aI_razr* KoefIrazT[iMUK_ZRU][iadc-6];					// Корекция Т2
+			
+		case 7:		
+			dTemp2_zru = Koef_k_dtemp2[iMUK_ZRU] * Uadc + Koef_b_dtemp2[iMUK_ZRU];																// Реальные значения T2
+//			if (mode_Zaryad)		Vals_ZRU[iadc-1] -= aI_zar * KoefIzarT[iMUK_ZRU][iadc-6];					// Корекция Т2
+//			if (mode_Razryad)		Vals_ZRU[iadc-1] += aI_razr* KoefIrazT[iMUK_ZRU][iadc-6];					// Корекция Т2
 		break;
 	}			
 	
 	//.....................................................................................
 	OkDataADC=0;	iReadAdc=0;									
-	if (iadc < nLastChannel)	{	iadc++;	}																																		// Номер последнего канала чтения АЦП в ЗРУ		nDatch = 7
-	else											{	iadc=0;
-		if ((!(MDR_PORTA->RXTX & 0x20))&&(!(MDR_PORTF->RXTX & 0x04)))	{																				// Нет передачи по RS485
-			
-			for (i=0; i < nParams; i++)	 {																																			// Коррекция значений
-				delta = Vals_ZRU[i] - Vals_ZRUold[i];
-				if (abs_f(delta) >= 0.5)	{
-					if (cCorrect[i] <= nCorrect)	{	Vals_ZRU[i] = Vals_ZRUold[i];	cCorrect[i]++;	}
-					else													{	
-					Vals_ZRUold[i] = Vals_ZRU[i];	cCorrect[i]=0;	}																									//akkCnCopy[i].Fdata = Vals_ZRU[i];	
-				}
-				else	{	
-					if (abs_f(delta) > 0.1)	{	
-						if (delta > 0)	{		Vals_ZRUold[i] += 0.1;	}	
-						else						{		Vals_ZRUold[i] -= 0.1;	}	
-						Vals_ZRU[i] = Vals_ZRUold[i];
-					}
-					else	{	
-						if (abs_f(delta) > 0.01)	{	
-							if (delta > 0)	{		Vals_ZRUold[i] += 0.01;	}	
-							else						{		Vals_ZRUold[i] -= 0.01;	}	
-							Vals_ZRU[i] = Vals_ZRUold[i];
-						}
-					}
-					Vals_ZRUold[i] = Vals_ZRU[i];	cCorrect[i]=0;
-				}
-			}
-			MakePack1();
-		}
-	}																																																				// Переход к каналу измерения Uref
+	if (iadc < nLastChannel)	// Номер последнего канала чтения АЦП в ЗРУ		nDatch = 7
+	{	
+		iadc++;
+		//пропуск каналов измерения
+		if(iadc == 3) 
+			iadc = 4;
+		if(iadc == 5)
+			iadc = 6;
+	}																																		
+	else											
+	{	
+		iadc=0;
+		MakePack1();
+//		if ((!(MDR_PORTA->RXTX & 0x20))&&(!(MDR_PORTF->RXTX & 0x04)))	// Нет передачи по RS485					
+//					
+//кусок, посвященный борьбе с резкими изменениями измеренных параметров
+//			if ((!(MDR_PORTA->RXTX & 0x20))&&(!(MDR_PORTF->RXTX & 0x04)))	// Нет передачи по RS485				
+//			{																				
+//				for (i=0; i < nParams; i++)	 {																																			// Коррекция значений
+//					delta = Vals_ZRU[i] - Vals_ZRUold[i];
+//					if (abs_f(delta) >= 0.5)	{
+//						if (cCorrect[i] <= nCorrect)	{	Vals_ZRU[i] = Vals_ZRUold[i];	cCorrect[i]++;	}
+//						else													{	
+//						Vals_ZRUold[i] = Vals_ZRU[i];	cCorrect[i]=0;	}																									//akkCnCopy[i].Fdata = Vals_ZRU[i];	
+//					}
+//					else	{	
+//						if (abs_f(delta) > 0.1)	{	
+//							if (delta > 0)	{		Vals_ZRUold[i] += 0.1;	}	
+//							else						{		Vals_ZRUold[i] -= 0.1;	}	
+//							Vals_ZRU[i] = Vals_ZRUold[i];
+//						}
+//						else	{	
+//							if (abs_f(delta) > 0.01)	{	
+//								if (delta > 0)	{		Vals_ZRUold[i] += 0.01;	}	
+//								else						{		Vals_ZRUold[i] -= 0.01;	}	
+//								Vals_ZRU[i] = Vals_ZRUold[i];
+//							}
+//						}
+//						Vals_ZRUold[i] = Vals_ZRU[i];	cCorrect[i]=0;
+//					}
+//				}
+//			}
+	}																																																				
 	ADC_GO(iadc);																																														// Запуск преобразования
 }
 
-//-------------------------------------------------------------------------------------------------------------------------------------------------
-// Отладочная процедура для проверки преобразований реальных значений в код и обратно
-//void Test (void)
-//{	/*const	int	nArr=35;
-//	float fznach=2.4, a=-1, b=2.4;
-//	float fr[nArr], fr2[nArr];
-//	unsigned char kod[nArr];
-//	unsigned short kod2[nArr];
-//	int i;
-//	
-//	for (i=0; i < nArr; i++)	 {
-//		kod[i]=255*((fznach-a)/(b-a));
-//		kod2[i]=0xffff*((fznach-a)/(b-a));
-////		fr[i]=(a+b*kod[i])/255;
-//		fr[i]=((b-a)*kod[i])/255+a;
-//		fr2[i]=((b-a)*kod2[i])/0xffff+a;
-//		fznach-=0.1;
-//	}	*/
-//}
-
+//-------------------------------------------------------------------------------------------------------------------------
+// функция сбрасывает все аварийные сообщения
+void ResetAvars(void)
+{
+	stat2[iMUK_ZRU] = 0;
+	stat3[iMUK_ZRU] &= ~(errNoOgrTokRazr|errNoOgrTokZar|errPrevDopustT);
+}
 
 // End of Work
