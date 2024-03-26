@@ -1131,8 +1131,6 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 				pVkl_Zapr_Razrayd();
 				pOtkl_Test_Razrayd();
 				stat4[iMUK_ZRU] |= br2;
-//надо обсудить
-//				stat2[iMUK_ZRU] &= ~errNoVklRazr;															// Собщение "Не включился разряд"=0
 				LimsCount = vsCount20;	sCount = 0;		bPauza = 1;								// Активация паузы 20 сек
 				StepAlgortm = st_t_2_05;																// Переход запрет разряда StepNext=bOtkl_Razrayd;
 			}			 
@@ -1665,8 +1663,6 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 				pVkl_Zapr_Razrayd();
 				pOtkl_Test_Razrayd();
 				stat5[iMUK_ZRU] |= br9;
-//надо обсудить
-//				stat2[iMUK_ZRU] &= ~errNoVklRazr;															// Собщение "Не включился разряд"=0
 				LimsCount = vsCount20;	sCount = 0;		bPauza = 1;								// Активация паузы 20 сек
 				StepAlgortm = st_t_8_05;																// Переход запрет разряда StepNext=bOtkl_Razrayd;
 			}			 
@@ -1845,8 +1841,6 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 				}
 		  }
 			else	{	
-//надо обсудить, нужна ли пауза				
-//				LimsCount = vsCount5;		sCount=0;		bPauza=1;										// Сброс счётчика 5 сек, включене паузы 5 сек
 				bPauza = 0;
 				StepAlgortm = st_t_8_11;	}
 		}
@@ -1909,8 +1903,6 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 					( stat5[iMUK_ZRU3] & br13))
 			{
 				if	(aI_zar > aIporog)	stat2[iMUK_ZRU] |= errNoOtklZar;						// Собщение "Не отключился Заряд АБ"=1
-//надо обсудить
-//				else									stat2[iMUK_ZRU] &= ~errNoOtklZar;						// Собщение "Не отключился Заряд АБ"=0
 				StepAlgortm = st_t_9_05;																					// 
 			}
 			else	{
@@ -3394,7 +3386,9 @@ int main(void)
  	CAN1_Init(); 
  	CAN2_Init();
 	SysTickInit(100000);
-	//initInternalWatchdog();																								// Запуск сторожевого таймера
+#ifdef WATCH_DOG
+	initInternalWatchdog();																								// Запуск сторожевого таймера
+#endif	
 	
 	ZRU_Init();																														// 
 
@@ -3575,6 +3569,8 @@ int main(void)
 					pVkl_Zapr_Razrayd();																						// «ЗАПРЕТ РАЗРЯД» = 1
 					pOtkl_Test_Zarayd();																						// "Откл_ТЕСТ ЗАР" 
 					pOtkl_Test_Razrayd();																						// "Откл_ТЕСТ РАЗР" 		
+					
+					pOtkl_RS(0); 
 
 					EndTVC = 1; //Устанавливаем флаг того, что процесс окончания ТВЦ запущен
 				}
@@ -3674,7 +3670,10 @@ int main(void)
 										MDR_PORTB->RXTX = (MDR_PORTB->RXTX & (~(PORT_JTAG_Msk | PB10)));				// PB10 = 0
 		*/
 		//..............................................................................................................................
-		//resetInternalWatchdog();																						// Перезапуск (сброс) внутреннего сторожевого таймера.
+		
+		#ifdef WATCH_DOG
+			resetInternalWatchdog();																						// Перезапуск (сброс) внутреннего сторожевого таймера.
+		#endif			
 	}
 }
 /* END OF FILE Main.c */
