@@ -497,6 +497,9 @@ void PutParamADC (void)																																				// С 14.07.20
 	switch (iadc)	{
 		case 1: //датчик тока 1
 		case 2: //датчик тока 2
+//debug			
+//			Uadc = 0.9;
+//~debug
 			if (Uadc < cUsm[iMUK_ZRU][iadc-1])																																	// З А Р Я Д
 			{	
 				aI_zar_dt[iadc-1] = KoefZar[iMUK_ZRU][iadc-1] * (cUsm[iMUK_ZRU][iadc-1]-Uadc); // записываем полученное значение тока с учетом тарировки

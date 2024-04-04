@@ -196,26 +196,26 @@
 //**************************************************************************************************************************
 //--------------------------- Шаги состояния процесса ТВЦ -----------------------------------------------------------------
 enum TestSteps {st_t_InitTest = 0, 
-								st_t_1_01, st_t_1_02, st_t_1_03, st_t_1_04, st_t_1_05, st_t_1_06, st_t_1_07, st_t_1_08,
-								st_t_2_01, st_t_2_02, st_t_2_03, st_t_2_04, st_t_2_05, st_t_2_06, st_t_2_07, st_t_2_08, st_t_2_09, st_t_2_10,
-								st_t_3_01, st_t_3_02, 
-								st_t_4_01, st_t_4_02, st_t_4_03, st_t_4_04, st_t_4_05, 
-								st_t_5_01, st_t_5_02, st_t_5_03, 
-								st_t_6_01, st_t_6_02, st_t_6_03, st_t_6_04, 
-								st_t_7_01, st_t_7_02, st_t_7_03, 
-								st_t_8_01, st_t_8_02, st_t_8_03, st_t_8_04, st_t_8_05, st_t_8_06, st_t_8_07, st_t_8_08, st_t_8_09, st_t_8_10, st_t_8_11, st_t_8_12, st_t_8_13, st_t_8_14,
-								st_t_9_01, st_t_9_02, st_t_9_03, st_t_9_04, st_t_9_05, 
-								st_t_InitEnd_Alg_TVC};
+								st_t_1_01 = 11, st_t_1_02 = 12, st_t_1_03 = 13, st_t_1_04 = 14, st_t_1_05 = 15, st_t_1_06 = 16, st_t_1_07 = 17, st_t_1_08 = 18,
+								st_t_2_01 = 21, st_t_2_02 = 22, st_t_2_03 = 23, st_t_2_04 = 24, st_t_2_05 = 25, st_t_2_06 = 26, st_t_2_07 = 27, st_t_2_08 = 28, st_t_2_09 = 29, st_t_2_10 = 30,
+								st_t_3_01 = 31, st_t_3_02 = 32, 
+								st_t_4_01 = 41, st_t_4_02 = 42, st_t_4_03 = 43, st_t_4_04 = 44, st_t_4_05 = 45, 
+								st_t_5_01 = 51, st_t_5_02 = 52, st_t_5_03 = 53, 
+								st_t_6_01 = 61, st_t_6_02 = 62, st_t_6_03 = 63, st_t_6_04 = 64, 
+								st_t_7_01 = 71, st_t_7_02 = 72, st_t_7_03 = 73, 
+								st_t_8_01 = 81, st_t_8_02 = 82, st_t_8_03 = 83, st_t_8_04 = 84, st_t_8_05 = 85, st_t_8_06 = 86, st_t_8_07 = 87, st_t_8_08 = 88, st_t_8_09 = 89, st_t_8_10 = 190, st_t_8_11 = 191, 
+								st_t_9_01 = 91, st_t_9_02 = 92, st_t_9_03 = 93, st_t_9_04 = 94, st_t_9_05 = 95, 
+								st_t_InitEnd_Alg_TVC = 255};
 
 //--------------------------- Шаги состояния процессов заряд-разряд -------------------------------------------------------
-enum ZarSteps {st_InitZarayd = 0, st_OtklKomp, st_WaitOtklKomp, st_Tst_P_NVAB, st_OtklZar_1, st_Vkl_Zarayd, st_Tst_T_NVAB_1, st_OtklZar_2, st_Tst_P_NVAB_2, st_Vkl_Zarayd_On, st_OtklZar_3, st_ViborUst};
+enum ZarSteps {st_InitZarayd = 0, st_z_1, st_z_2, st_z_3, st_z_4, st_z_5, st_z_6, st_z_7, st_z_8, st_z_9, st_z_10, st_z_11};
 
 //--------------------------- Шаги состояния процесса разряд --------------------------------------------------------------
-enum RazSteps {st_InitRazryad = 0, st_Tst_I_Razryda, st_Tst_U_Razryda, st_Otkl_Razrayd, st_OtklRaz_Inspect, st_Tst_U_Razryda_end, st_UabCheck, st_WaitPause, st_ZRPCheck};
+enum RazSteps {st_InitRazryad = 0, st_r_1, st_r_2, st_r_3, st_r_4, st_r_5, st_r_6, st_r_7, st_r_8};
 
 //--------------------------- Шаги состояния процесса подзаряд -------------------------------------------------------------
-enum PodzarSteps {st_p_InitPodzar = 0, st_p_OtklPodzar_1, st_p_Pnuz_1, st_p_VklKomp, st_p_Tnuz_1, st_p_Otkl_ZaprZarayd, st_p_WaitOtkl_ZaprZar, st_p_Tnuz_2, st_p_Pnuz_2,
-									st_p_OtklPodzar_2, st_Tnuz_minus2, st_p_WaitVklKomp, st_p_ZarydComp, st_p_Tvuz_minus2, st_p_WaitOtklKomp, st_p_EndPodzaryda};
+enum PodzarSteps {st_p_InitPodzar = 0, st_p_1, st_p_2, st_p_3, st_p_4, st_p_5, st_p_6, st_p_7, st_p_8,
+									st_p_9, st_p_10, st_p_11, st_p_12, st_p_13, st_p_14, st_p_15, st_p_16};
 
 
 //--------------------------- Режимы работы -------------------------------------------------------------------------------
