@@ -22,6 +22,7 @@
 #define gUstavki_Curr				0x5														// Уставки_Текущ - управление БЭ
 #define gUstavki_Tst				0x6														// контроль параметров (уставок) алгоритмов ЗРУ
 #define gSaveData_to_BCU		0x7														// запоминаемые для восстановления данные в БВС 
+#define gService						0x8														// вспомогательные данные
 #define gTstLine						0xFF													// проверка связи
 
 // Длины пакетов в байтах, поступающих из БЦУ по интерфейсу RS485:
@@ -32,6 +33,7 @@
 #define lngUstavki_Curr			36														// 
 #define lngUstavki_Tst			6															// 
 #define lngSaveData_BCU			6															// 
+#define lngService					6															// вспомогательные данные
 #define lngTstLine					6															// 
 
 // Параметр команды gCmd_for_ZRU - код команды для ЗРУ
@@ -53,6 +55,7 @@
 #define lngPackRs5					6															// Ответ на пакет 5
 #define lngPackRs6					36														// контроль уставок ЗРУ 
 #define lngPackRs7					10														// запоминаемые для восстановления данные в БВС 
+#define lngPackRs8					10														// вспомогательные данные
 #define lngPackRs10					6															// Ответ на пакет 10
 
 //-------------------------------------------------------------------------------------------------------------

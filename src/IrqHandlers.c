@@ -79,15 +79,15 @@ extern volatile unsigned short checksumCalc2, checksumIn2;
 //.......................................................................................................................
 extern unsigned char	secUart1, secUart2;																	// Счётчик секунд Uart1, флаг достижения двух секунд
 
-extern unsigned char PackRs1[lngPackRs1];																	// Ответ на пакет 1
-extern unsigned char PackRs2[lngPackRs2];																	// Ответ на пакет 2
-extern unsigned char PackRs3[lngPackRs3];																	// Ответ на пакет 3
-extern unsigned char PackRs4[lngPackRs4];																	// Ответ на пакет 4
-extern unsigned char PackRs5[lngPackRs5];																	// Ответ на пакет 5
-extern unsigned char PackRs6[lngPackRs6];																	// Ответ на пакет 6
-extern unsigned char PackRs7[lngPackRs7];																	// Ответ на пакет 7
+//extern unsigned char PackRs1[lngPackRs1];																	// Ответ на пакет 1
+//extern unsigned char PackRs2[lngPackRs2];																	// Ответ на пакет 2
+//extern unsigned char PackRs3[lngPackRs3];																	// Ответ на пакет 3
+//extern unsigned char PackRs4[lngPackRs4];																	// Ответ на пакет 4
+//extern unsigned char PackRs5[lngPackRs5];																	// Ответ на пакет 5
+//extern unsigned char PackRs6[lngPackRs6];																	// Ответ на пакет 6
+//extern unsigned char PackRs7[lngPackRs7];																	// Ответ на пакет 7
 
-extern unsigned char bUstavkiBCU;
+//extern unsigned char bUstavkiBCU;
 //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
 
 unsigned char bBadCmd2, bBadCmd1;
@@ -526,6 +526,7 @@ void UART1_IRQHandler(void)
 						case gStat_AB_Full:																										// Сост_АБ_Полн_БЭ – полная телеметрия БЭ
 						case gUstavki_Tst:																										// контроль параметров (уставок) алгоритмов ЗРУ
 						case gSaveData_to_BCU:																								// запоминаемые для восстановления данные в БВС 
+						case gService:																												// вспомогательные данные 
 						case gTstLine:						lngPack1 = lngStat_ZRU;			break;					// проверка связи
 						
 						case gCmd_for_ZRU:				lngPack1 = lngCmd_ZRU;			break;					// команда для ЗРУ
@@ -618,6 +619,7 @@ void UART2_IRQHandler(void)
 						case gStat_AB_Full:																										// Сост_АБ_Полн_БЭ – полная телеметрия БЭ
 						case gUstavki_Tst:																										// контроль параметров (уставок) алгоритмов ЗРУ
 						case gSaveData_to_BCU:																								// запоминаемые для восстановления данные в БВС 
+						case gService:																												// вспомогательные данные 							
 						case gTstLine:						lngPack2 = lngStat_ZRU;			break;					// проверка связи
 						
 						case gCmd_for_ZRU:				lngPack2 = lngCmd_ZRU;			break;					// команда для ЗРУ

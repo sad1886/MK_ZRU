@@ -87,6 +87,11 @@ unsigned char PackRs6[lngPackRs6] = {START_BYTE, Adr_RS_ZRU, nMUK_BCU, 6,							
 unsigned char PackRs7[lngPackRs7] = {START_BYTE, Adr_RS_ZRU, nMUK_BCU, 7,														// Шапка пакета Контрольная сумма
 																		 0, 0, 0, 0, 0, 0};		
 
+// ........ пакет 8 ..............................................................................................
+unsigned char PackRs8[lngPackRs8] = {START_BYTE, Adr_RS_ZRU, nMUK_BCU, 8,														// Шапка пакета Контрольная сумма
+																		 0, 0, 0, 0, 0, 0};		
+																		 
+																		 
 // ........ пакет 10 ..............................................................................................
 unsigned char PackRs10[lngPackRs10] = {START_BYTE, Adr_RS_ZRU, nMUK_BCU, 255,	0, 0};								// Шапка пакета Контрольная сумма
 																		 		

@@ -15,7 +15,7 @@
 
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //----------- Версия прошивки ----------------------------------------------------
-#define Version 7.2.4
+#define Version 7.2.5
 
 //#define WATCH_DOG //включение сторожевого таймера
 
@@ -208,13 +208,13 @@ enum TestSteps {st_t_InitTest = 0,
 								st_t_InitEnd_Alg_TVC};
 
 //--------------------------- Шаги состояния процессов заряд-разряд -------------------------------------------------------
-enum ZarSteps {st_InitZarayd = 100, st_OtklKomp, st_WaitOtklKomp, st_Tst_P_NVAB, st_OtklZar_1, st_Vkl_Zarayd, st_Tst_T_NVAB_1, st_OtklZar_2, st_Tst_P_NVAB_2, st_Vkl_Zarayd_On, st_OtklZar_3, st_ViborUst};
+enum ZarSteps {st_InitZarayd = 0, st_OtklKomp, st_WaitOtklKomp, st_Tst_P_NVAB, st_OtklZar_1, st_Vkl_Zarayd, st_Tst_T_NVAB_1, st_OtklZar_2, st_Tst_P_NVAB_2, st_Vkl_Zarayd_On, st_OtklZar_3, st_ViborUst};
 
 //--------------------------- Шаги состояния процесса разряд --------------------------------------------------------------
-enum RazSteps {st_InitRazryad = 200, st_Tst_I_Razryda, st_Tst_U_Razryda, st_Otkl_Razrayd, st_OtklRaz_Inspect, st_Tst_U_Razryda_end, st_UabCheck, st_WaitPause, st_ZRPCheck};
+enum RazSteps {st_InitRazryad = 0, st_Tst_I_Razryda, st_Tst_U_Razryda, st_Otkl_Razrayd, st_OtklRaz_Inspect, st_Tst_U_Razryda_end, st_UabCheck, st_WaitPause, st_ZRPCheck};
 
 //--------------------------- Шаги состояния процесса подзаряд -------------------------------------------------------------
-enum PodzarSteps {st_p_InitPodzar = 300, st_p_OtklPodzar_1, st_p_Pnuz_1, st_p_VklKomp, st_p_Tnuz_1, st_p_Otkl_ZaprZarayd, st_p_WaitOtkl_ZaprZar, st_p_Tnuz_2, st_p_Pnuz_2,
+enum PodzarSteps {st_p_InitPodzar = 0, st_p_OtklPodzar_1, st_p_Pnuz_1, st_p_VklKomp, st_p_Tnuz_1, st_p_Otkl_ZaprZarayd, st_p_WaitOtkl_ZaprZar, st_p_Tnuz_2, st_p_Pnuz_2,
 									st_p_OtklPodzar_2, st_Tnuz_minus2, st_p_WaitVklKomp, st_p_ZarydComp, st_p_Tvuz_minus2, st_p_WaitOtklKomp, st_p_EndPodzaryda};
 
 

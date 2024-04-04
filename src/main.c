@@ -211,6 +211,7 @@ extern unsigned char PackRs4[lngPackRs4];													// Ответ на пак�
 extern unsigned char PackRs5[lngPackRs5];													// Ответ на пакет 5
 extern unsigned char PackRs6[lngPackRs6];													// Ответ на пакет 6
 extern unsigned char PackRs7[lngPackRs7];													// Ответ на пакет 7
+extern unsigned char PackRs8[lngPackRs8];													// Ответ на пакет 7
 extern unsigned char PackRs10[lngPackRs10];												// Ответ на пакет 10
 
 extern unsigned char * p_ParRs;
@@ -2480,15 +2481,12 @@ void MakePack7(void)	// Заполнение пакета 7
 3							Емкость АБ при разряде,  в том числе в ТВЦ					ufix8,z = 0.2 А*ч, x0 = 0 А*ч
 4							Текущее время от начала этапа 											ufix8,z = 0.283 ч, x0 = 0 ч
 */
-//	PackRs7[5] = (int) ((W_raz - x0_p7[0])/z_p7[0]+0.5);									// Энергоемкость АБ при разряде, в том числе в ТВЦ
-//	PackRs7[6] = (int) ((C_raz - x0_p7[1])/z_p7[1]+0.5);									// Емкость АБ при разряде,  в том числе в ТВЦ
-//	PackRs7[7] = (tMin - x0_p7[2])/z_p7[2];																// Текущее время от начала этапа
 
-	//временно для отладки
-	tstatTVC = 18*60;
-	W_raz = 300;
-	C_raz = 13;
-	//временно для отладки
+//	//временно для отладки
+//	tstatTVC = 18*60;
+//	W_raz = 300;
+//	C_raz = 13;
+//	//временно для отладки
 
 	tMin = (float)(tstatTVC/60);																					// Текущее время от начала этапа в минутах
 	PackRs7[4] = (bRestData<<7) | (bRestData_indiv<<6) | statTVC;					// Запрос на восстановление данных, ЗВД	1/0
@@ -2499,6 +2497,19 @@ void MakePack7(void)	// Заполнение пакета 7
 	checksumCalc = Crc16(PackRs7, lngPackRs7-2);													// Выисление контрольной суммы
 	*(PackRs7+lngPackRs7-1) =  checksumCalc;	
 	*(PackRs7+lngPackRs7-2) =  checksumCalc >> 8;													// Добавить контрольную сумму
+}
+
+//-------------------------------------------------------------------------------------------------------------------------
+void MakePack8(void)	// Заполнение пакета 8	
+{		
+	PackRs8[4] = CreateByteFromParam(StepAlgortmZar, 0, 1);
+	PackRs8[5] = CreateByteFromParam(StepAlgortmRazr, 0, 1);
+	PackRs8[6] = CreateByteFromParam(StepAlgortm, 0, 1);
+	PackRs8[7] = CreateByteFromParam(StepAlgortmPodzar, 0, 1);
+	
+	checksumCalc = Crc16(PackRs8, lngPackRs8-2);													// Выисление контрольной суммы
+	*(PackRs8+lngPackRs8-1) =  checksumCalc;	
+	*(PackRs8+lngPackRs8-2) =  checksumCalc >> 8;													// Добавить контрольную сумму
 }
 
 //-------------------------------------------------------------------------------------------------------------------------
@@ -3047,6 +3058,7 @@ void OneSecAdd (void)													/* Добавить секунду */
 	pNotCan(); //считали состояние проводных линий раз в секунду
 	
 	//заряд
+	cntZarProv++;
 	if(bitNotZar != Prev_bitNotZar) //если изменилось состояние по сравнению с предыдущим
 	{
 		cntZarProv = 0; //обнулили счетчик секунд
@@ -3054,13 +3066,14 @@ void OneSecAdd (void)													/* Добавить секунду */
 	}
 	Prev_bitNotZar = bitNotZar; //запомнили состояние
 	
-	if(cntZarProv > 10) //если долго не мигали
+	if(cntZarProv > 5) //если долго не мигали
 	{
 		cntZarProv = 0; //обнуляем счетчик секунд
 		ZaprZarProv = 1; //запрет заряда проводной = 1
 	}
 	
 	//разряд
+	cntRazrProv++;
 	if(bitNotRaz != Prev_bitNotRaz) //если изменилось состояние по сравнению с предыдущим
 	{
 		cntRazrProv = 0; //обнулили счетчик секунд
@@ -3068,7 +3081,7 @@ void OneSecAdd (void)													/* Добавить секунду */
 	}
 	Prev_bitNotRaz = bitNotRaz; //запомнили состояние
 	
-	if(cntRazrProv > 10) //если долго не мигали
+	if(cntRazrProv > 5) //если долго не мигали
 	{
 		cntRazrProv = 0; //обнуляем счетчик секунд
 		ZaprRazrProv = 1; //запрет разряда проводной = 1
@@ -3184,6 +3197,12 @@ void Var_init()
 	ZaprZarProv = ZaprRazrProv = 0; //при начале работы запретов нет
 	Prev_bitNotZar = bitNotZar = 0;
 	Prev_bitNotRaz = bitNotRaz = 0;
+	
+	//алгоритмы
+	StepAlgortmZar = st_InitZarayd;
+	StepAlgortmRazr = st_InitRazryad;
+	StepAlgortm = st_t_InitTest;
+	StepAlgortmPodzar = st_p_InitPodzar;	
 }	
 
 //-------------------------------------------------------------------------------------------------------------------------
@@ -3252,7 +3271,9 @@ void WrkCmd_1(void)
 	case	gUstavki_Tst:		p_ParRs1 = PackRs6;	BatchSize1 = lngPackRs6;	break;		// контроль параметров (уставок) алгоритмов ЗРУ
 
 	case	gSaveData_to_BCU:
-												p_ParRs1 = PackRs7;	BatchSize1 = lngPackRs7;	break;		// 0x7	запоминаемые для восстановления данные в БВС 
+												p_ParRs1 = PackRs7;	BatchSize1 = lngPackRs7;	break;		// запоминаемые для восстановления данные в БВС 
+	case	gService:
+												p_ParRs1 = PackRs8;	BatchSize1 = lngPackRs8;	break;		// вспомогательные данные 	
 	case	gTstLine:				
 												p_ParRs1 = PackRs10;BatchSize1 = lngPackRs10;	break;		// 0xFF	проверка связи
 	}
@@ -3317,6 +3338,8 @@ void WrkCmd_2(void)
 
 	case	gSaveData_to_BCU:
 												p_ParRs2 = PackRs7;	BatchSize2 = lngPackRs7;	break;		// 0x7	запоминаемые для восстановления данные в БВС 
+	case	gService:
+												p_ParRs2 = PackRs8;	BatchSize2 = lngPackRs8;	break;		// вспомогательные данные 		
 	case	gTstLine:				
 												p_ParRs2 = PackRs10;BatchSize2 = lngPackRs10;	break;		// 0xFF	проверка связи
 	}
@@ -3451,6 +3474,7 @@ int main(void)
 			// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .			
 			MakePack6();
 			MakePack7();																											//if ((!(MDR_PORTA->RXTX & 0x20))&&(!(MDR_PORTF->RXTX & 0x04)))	{	MakePack7(); }
+			MakePack8();
 		}									
 
 		//.......................................................... Контроль обновления данных телеметрии.....................
