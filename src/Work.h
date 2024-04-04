@@ -15,7 +15,7 @@
 
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //----------- Версия прошивки ----------------------------------------------------
-#define Version 7.2.5
+#define Version 7.2.6
 
 //#define WATCH_DOG //включение сторожевого таймера
 
@@ -450,8 +450,6 @@ void pVkl_Zapr_Razrayd (void);					void pOtkl_Zapr_Razrayd (void);					// 4
 void pVkl_Test_Zarayd (void);						void pOtkl_Test_Zarayd (void);					// 5
 void pVkl_Test_Razrayd (void);					void pOtkl_Test_Razrayd (void);					// 6
 void pVkl_RS (int bWait);								void pOtkl_RS (int bWait);							// 7
-//void pVkl_AB_ZRU (void);								void pOtkl_AB_ZRU (void);								// 0
-//void pVkl_SES_ZRU (int bWait);					void pOtkl_SES_ZRU (int bWait);					// 8
 
 //--------------------------------------------------------------------------------------------------------------------------
 void pNotCan (void);																					// При отказе 2-х CAN от БЭ
@@ -460,11 +458,6 @@ void CAN_SendStatusZRU(void);
 void CAN_SendConf_1(unsigned char confcmd);
 void CAN_SendConf_2(unsigned char confcmd);
 void CAN_SendBadNumAk(unsigned char adr_MUK_Z, unsigned char n_MUK_BE, unsigned char cmd);
-
-void CAN2_TstMSG(int cod, unsigned char lenData, volatile unsigned char * volatile pnt);
-//void CAN_SendTstData(unsigned char n_MUK_Z, unsigned char n_MUK_BE, unsigned char cmd);
-//void CAN1_MakeMSG_pack(int cod, unsigned char lenData, volatile unsigned char * volatile pnt);
-//void CAN2_MakeMSG_pack(int cod, unsigned char lenData, volatile unsigned char * volatile pnt);
 
 //--------------------------------------------------------------------------------------------------------------------------
 void UART_SendByte(unsigned char byte);			// Функция отправки байта по UART

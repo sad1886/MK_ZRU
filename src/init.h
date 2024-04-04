@@ -5,7 +5,6 @@
 #define INIT_H
 
 void Clock_Init(void);								// Инициализация тактового генератора
-void WWDT_Init (void);								// Инициализация оконного следящего таймера
 void Ports_Init(void);								// Инициализация всех портов 
 //void Ports_Init_Tst (void);
 void ADC_Init (void);									// Инициализация АЦП и включение его прерываний

@@ -13,7 +13,6 @@
 #include "Can.h"
 #include "Uart.h"
 #include "Work.h"
-#include "math.h"
 
 //--------------------------- Общие ---------------------------------------------------------------------------------------
 volatile unsigned char mode;																	// Текущий режим работы контроллера
@@ -230,11 +229,6 @@ extern unsigned char bReqBCU[2];																		// Флаг: поступил 
 unsigned char bUstavkiBCU;
 
 //--------------------------- Time переменные ---------------------------------------------------------------------------
-volatile unsigned char mCount5Main, mCountSecMain;								// Счётчик 5 мин для измерения температуры АБ, счётчик секунд
-volatile unsigned char mCount5, mCountSec;												// Счётчик 5 мин для паузы
-//volatile unsigned char sCount5, sWait5;														// Счётчик 5 сек для расчёта C и W
-volatile unsigned char sCount20;																	// Счётчик 20 сек для задержки повтора 3 раза алгоритма заряда
-
 volatile unsigned char bTimeOutCmd;																// Флаг Время ожидания ответа результата от БЭ команды 
 volatile unsigned char bOneSec;																		// Флаг 1 секунда
 volatile unsigned char bPauza5, bPauza20, bPauza5m;								// Флаги включения пауз 5 сек, 20 сек, 5 мин
@@ -366,7 +360,7 @@ int CreateAKtelem()
 		}
 		
 		//до вызова этой функции мы уже ранее посчитали наиболее правдоподобное значение Uab
-		if( fabs(Uab1_sum - Uab) < fabs(Uab2_sum - Uab) ) //если первый МК БЭ выдал сумму с меньшим отклонением
+		if( abs_f(Uab1_sum - Uab) < abs_f(Uab2_sum - Uab) ) //если первый МК БЭ выдал сумму с меньшим отклонением
 			true_ind = 0; //то считаем, что его телеметрию мы должны брать за основу
 		else 
 			true_ind = 1; //иначе за основу берем телеметрию второго МК БЭ			
@@ -434,7 +428,7 @@ void GetDataFromCan()
 			Uab_maxdelta = 0; ind_of_maxdelta = 0;
 			for(i = 0; i < 3; i++)
 			{
-				Uab_delta[i] = fabs(Uab_sr_123 - Uab_sr12[i]); //для каждого из трех БЭ находим отклонение
+				Uab_delta[i] = abs_f(Uab_sr_123 - Uab_sr12[i]); //для каждого из трех БЭ находим отклонение
 				if(Uab_delta[i] >= Uab_maxdelta) //если отклонение максимальное
 				{
 					Uab_maxdelta = Uab_delta[i];
@@ -3138,8 +3132,6 @@ void WrkCmd_1(void)
 		while ((MDR_UART1->FR & UART_FR_BUSY) && (j<Transmit_wait)) {j++;	};				// Ожидание отправки байта TRANSMIT_WAIT; i = 162 UART_FR_TXFF
 		//while ((MDR_UART1->FR & UART_FR_TXFF) && (j<Transmit_wait)) {j++;	};				// Ожидание отправки байта TRANSMIT_WAIT; i = 162 UART_FR_TXFF
 	}
-
-	//CAN2_TstMSG(1, BatchSize1, p_ParRs1-BatchSize1);
 
 	for(i=0; i < waitOEoff; i++)	ind_mas_trans1 = 0;															// Ожидание передачи последнего байта
 	RS_RECEIVE1																																		// Режим приёмника RS-485. Uart - OE=1
