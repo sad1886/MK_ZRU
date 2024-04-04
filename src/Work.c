@@ -10,7 +10,6 @@
 #include "parameters.h"
 #include "init.h"											// Файл с описанием процедур инициализации и аппаратных настроек микроконтроллера
 #include "Can.h"
-#include "init_bkp.h"									// Файл с определениями структур времени
 #include "Work.h"
 #include "Uart.h"
 
@@ -116,8 +115,6 @@ volatile union uBytes64 Reciev_CanAB[nFrameABCAN];						// Телеметрия 
 volatile union uBytes64 Reciev_CanDatch_All[nMUKBE][nFrameDatchCAN];			// Телеметрия датчиков всех трех МК
 volatile union uBytes64 Reciev_CanAB_All[nMUKBE][nFrameABCAN];						// Телеметрия АБ всех трех МК
 //--------------------------- переменные времени ------------------------------------------------------------------------------
-extern tTime	sTime;
-extern int NewDay;
 extern volatile unsigned char mCount5Main, mCountSecMain;			// Счётчик 5 мин для измерения температуры АБ
 extern volatile unsigned char mCount5, mCountSec, bPauza5m;		// Счётчик 5 мин для паузы, флаг начала счёта
 extern volatile unsigned char sCount20, bPauza20;							// Счётчик 20 сек для задержки повтора 3 раза алгоритма заряда, флаг начала счёта

@@ -6,7 +6,6 @@
 #include "MDR32F9x.h"
 #include "init.h"																													// Файл с описанием процедур инициализации и аппаратных настроек
 #include "Can.h"
-#include "init_bkp.h"																											// Файл инициализации BACKUP
 #include "Work.h"
 #include "Uart.h"
 
@@ -79,23 +78,11 @@ extern volatile unsigned short checksumCalc2, checksumIn2;
 //.......................................................................................................................
 extern unsigned char	secUart1, secUart2;																	// Счётчик секунд Uart1, флаг достижения двух секунд
 
-//extern unsigned char PackRs1[lngPackRs1];																	// Ответ на пакет 1
-//extern unsigned char PackRs2[lngPackRs2];																	// Ответ на пакет 2
-//extern unsigned char PackRs3[lngPackRs3];																	// Ответ на пакет 3
-//extern unsigned char PackRs4[lngPackRs4];																	// Ответ на пакет 4
-//extern unsigned char PackRs5[lngPackRs5];																	// Ответ на пакет 5
-//extern unsigned char PackRs6[lngPackRs6];																	// Ответ на пакет 6
-//extern unsigned char PackRs7[lngPackRs7];																	// Ответ на пакет 7
-
-//extern unsigned char bUstavkiBCU;
-//. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
 
 unsigned char bBadCmd2, bBadCmd1;
 extern unsigned char bReqBCU[2];																					// Флаг: поступил запрос (команда) от БЦУ
 
 //--------------------------- Time переменные ------------------------------------------------------------------------------
-extern tTime	sTime;
-extern int NewDay;
 extern volatile unsigned char mCount5Main, mCountSecMain;									// Счётчик 5 мин для измерения температуры АБ
 extern volatile unsigned char mCount5, mCountSec, bPauza5m;								// Счётчик 5 мин для паузы, флаг начала счёта
 extern volatile unsigned char sCount20, bPauza20;													// Счётчик 20 сек для задержки повтора 3 раза алгоритма заряда, флаг начала счёта

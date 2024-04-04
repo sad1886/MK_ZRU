@@ -448,11 +448,6 @@
               <FileType>1</FileType>
               <FilePath>.\src\Uart.c</FilePath>
             </File>
-            <File>
-              <FileName>init_BKP.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\src\init_BKP.c</FilePath>
-            </File>
           </Files>
         </Group>
         <Group>
