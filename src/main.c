@@ -798,12 +798,12 @@ void Calculation_noCAN (void)
 }
 
 //-------------------------------------------------------------------------------------------------------------------------
-//функция подготавливает паузу LimsCount bPauza
+//функция подготавливает паузу LimsCount bPauza 
 void PauseOn(unsigned int p)
 {
-	LimsCount = p;	
+	LimsCount = p; 	//секунды
 	sCount=0;	
-	bPauza=1;													// Активация паузы 
+	bPauza=1;				//Активация паузы 
 }
 //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 //-------------------------------------------------------------------------------------------------------------------------
@@ -811,7 +811,7 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 {		
 	int ii; //для микрозадержки
 
-	switch (StepAlgortm)																									// Переключатель состояний алгоритма ТВЦ
+	switch (StepAlgortm)	// Переключатель состояний алгоритма ТВЦ
 	{
 	// .......... Инициализация ТВЦ .........................................................................................
 	case st_t_InitTest:
@@ -822,33 +822,32 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 	case st_t_1_01:		
 		
 		pOtkl_KOMP();
-		LimsCount = vsCount5;	sCount=0;		bPauza=1;													// Активация паузы 5 сек
+		PauseOn(5);
 		StepAlgortm = st_t_1_02;          	
 	break;
 	
 	// .......... Ожидание отключения КОМП Заряда ...........................................................................
 	case st_t_1_02:		
 
-		if (!bPauza) {
+		if (!bPauza) 
 			StepAlgortm = st_t_1_03;	
-		}
 		break;
 		
 	// ========== Ожидание разряда АБ .......................................................................................
 	case st_t_1_03:
 		
-		if (!bPauza) {																											// Пауза  
-			if	(((P <= 0.8*Pn) && (T <= Tn3))||															//  
-					 ((0.8*Pn <= P) && (P <= Pn) && (T <= Tn2))||									// 
-					 ((Pn <= P) && (P <= Pv) && (T <= Tn1)))	
+		if (!bPauza) {																											 
+			if	( ((P <= 0.8*Pn) && (T <= Tn3)) ||															  
+					  ((0.8*Pn <= P) && (P <= Pn) && (T <= Tn2)) ||									 
+					  ((Pn <= P) && (P <= Pv) && (T <= Tn1)) )	
 			{													 					 
 				pVkl_Zapr_Razrayd();
 				pVkl_Zapr_Zarayd();			
-				for (ii=0; ii < 500; ii++)	tstatTVC =0;	//микропауза в 500мкс
+				for (ii=0; ii < 500; ii++) tstatTVC = 0;	//микропауза в 500мкс
 				StepAlgortm = st_t_1_04;							 
 		  }
 			else	{																														
-				LimsCount = vmCount1;		sCount=0;	bPauza=1;											// Сброс счётчика 1 мин, включение паузы 1 мин
+				PauseOn(60);
 				StepAlgortm = st_t_1_03;
 			}
 		}
@@ -859,8 +858,8 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 		
 		pVkl_Test_Zarayd();	
 		pOtkl_Zapr_Zarayd();
-		stat4[iMUK_ZRU] &= ~br1;																						//  
-		LimsCount = vsCount20;	sCount=0;		bPauza=1;												// Активация паузы 20 сек
+		stat4[iMUK_ZRU] &= ~br1;																						  
+		PauseOn(20);
 		StepAlgortm = st_t_1_05;           
 	break;
 		
@@ -873,7 +872,7 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 				StepAlgortm = st_t_1_06;
 			}
 			else	{									
-				stat2[iMUK_ZRU] |= errNoVklZar;																	// Собщение "Не включился Заряд АБ"=1
+				stat2[iMUK_ZRU] |= errNoVklZar;					// Собщение "Не включился Заряд АБ"=1
 				StepAlgortm = st_t_1_04;
 			}	
 		}
@@ -883,26 +882,22 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 	case st_t_1_06:		
 		
 		if (!bPauza) {
-			if	((T >= Tn3)||																									// 
-					 ((0.8*Pn <= P) && (P <= Pn) && (T >= Tn2))||									// 
-					 ((Pn <= P) && (P <= Pv) && (T >= Tn1))||											// 
-					 (P >= Pv) ||
-					 ((stat4[iMUK_ZRU2] & br1)&&															
-					 ( stat4[iMUK_ZRU3] & br1)) 	
-					)
+			if	( (T >= Tn3) ||																									
+					  ((0.8*Pn <= P) && (P <= Pn) && (T >= Tn2)) ||									
+					  ((Pn <= P) && (P <= Pv) && (T >= Tn1)) ||											 
+					  (P >= Pv) ||
+					  ((stat4[iMUK_ZRU2] & br1) && ( stat4[iMUK_ZRU3] & br1)) )
 			{			
 				if (P >= Pv) 
 				{																								
-					stat3[iMUK_ZRU] |= errPrevDopustT;														// "Превышение допустимой температуры НВАБ"
-					StepAlgortm = st_t_InitEnd_Alg_TVC;														// ******** Окончание по превышению температуры											
+					stat3[iMUK_ZRU] |= errPrevDopustT;		// "Превышение допустимой температуры НВАБ"
+					StepAlgortm = st_t_InitEnd_Alg_TVC;		// ******** Окончание по превышению температуры											
 				}													
 				else	
-				{
-					StepAlgortm = st_t_1_07;
-				}														
+					StepAlgortm = st_t_1_07;													
 			}	
-			else	{																														// Продолжаем заряд
-				LimsCount = vmCount1;		sCount=0;		bPauza=1;										// Включене паузы 1 мин
+			else	{																														
+				PauseOn(60);
 				StepAlgortm = st_t_1_06;									
 			}
 		}	
@@ -911,10 +906,10 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 	// ========== Отключаем Заряд ...........................................................................................
 	case st_t_1_07:	
 		
-		stat4[iMUK_ZRU] |= br1;																							// 
-		pVkl_Zapr_Zarayd();																									// ВКЛ ЗАПР ЗАР
-		pOtkl_Test_Zarayd();																								// ОТКЛ ТЕСТ ЗАРЯД 
-		LimsCount = vsCount20;	sCount=0;		bPauza=1;												// Активация паузы 20сек
+		stat4[iMUK_ZRU] |= br1;																							 
+		pVkl_Zapr_Zarayd();																									
+		pOtkl_Test_Zarayd();																								
+		PauseOn(20);
 		StepAlgortm = st_t_1_08;												
 
 	break;
@@ -929,6 +924,7 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 				stat2[iMUK_ZRU] |= errNoOtklZar;																// Собщение "Не отключился Заряд АБ"=1
 			else								
 				stat2[iMUK_ZRU] &= ~errNoOtklZar;																// Собщение "Не отключился Заряд АБ"=0
+			
 			StepAlgortm = st_t_2_01;																			
 		}
 		break;
@@ -941,12 +937,13 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 		StepAlgortm = st_t_2_02;																		
 	
 	// ========== Включение тестового разряда ...............................................................................
-	case st_t_2_02:				
+	case st_t_2_02:	
+		
 		pVkl_Test_Razrayd();
 		pOtkl_Zapr_Razrayd();
 		stat4[iMUK_ZRU] &= ~br2;																			
 		sCount_2h = 0; 																											// подготавливаем переменную, с помощью которой будем ждать 20 секунд, прежде чем контролировать ток, переменная увеличивается раз в секунду
-		LimsCount = vsCount1;	sCount=0;		bPauza=1;													// Активация паузы 1сек, каждые 1 секунд будем делать Calculation
+		PauseOn(1);
 		// Так как начался разряд, нужно уже начать Calculation, поэтому 
 		calc_dt = calc_dt1; //дельта времени соответствует 1 секундам	
 		Uab_old = Uab;	aI_razrOld = aI_razr; //фиксируем текущие U и I
@@ -964,22 +961,20 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 			{
 				if	(aI_razr > aIporog)	
 				{
-					stat2[iMUK_ZRU] &= ~errNoVklRazr;															// Собщение "Не включился разряд"=0				
-					LimsCount = vsCount1; 	sCount = 0;		bPauza = 1;							// Активация паузы  для расчёта W C
-					calc_dt = calc_dt1; 																									
+					stat2[iMUK_ZRU] &= ~errNoVklRazr;															// Собщение "Не включился разряд"=0																											
 					StepAlgortm = st_t_2_04;	
+					
+					PauseOn(1);
+					calc_dt = calc_dt1; 						
 				}
 				else	{						
 					stat2[iMUK_ZRU] |= errNoVklRazr;															// Собщение "Не включился разряд"=1
 					StepAlgortm = st_t_2_02;																		
-				}		
-
-				LimsCount = vsCount1; 	sCount = 0;		bPauza = 1;								// Активация паузы  для расчёта W C
-				calc_dt = calc_dt1; 																							
+				}																						
 			}
 			else  //если же ток еще рано измерять
 			{
-				LimsCount = vsCount1;	sCount=0;		bPauza=1;											// Активация паузы 1сек
+				PauseOn(1);
 				calc_dt = calc_dt1;
 				StepAlgortm = st_t_2_03; 																				// зацикливаемся на Calculation и ожидание sCount_2h >= 20
 			}
@@ -990,25 +985,24 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 	case st_t_2_04:		
 		
 		if (!bPauza) {
-			if	(
-					(T >= Traz)||																									// Контроль температуры
-					(tstatTVC/60 >= tP_TVC)||																			
-					(Uab <= 72)||																									// напряжения АБ
-					(Umin_ak <= 0.1)||
-					((stat4[iMUK_ZRU2] & br2)&&																		
-					( stat4[iMUK_ZRU3] & br2))
+			if	((T >= Traz)||																									// Контроль температуры
+					 (tstatTVC/60 >= tP_TVC)||																			
+					 (Uab <= 72)||																									// напряжения АБ
+					 (Umin_ak <= 0.1)||
+					 ((stat4[iMUK_ZRU2] & br2) && (stat4[iMUK_ZRU3] & br2))
 					)																															
 			{			 
-				if	(T >= Traz)	{	stat3[iMUK_ZRU] |= errPrevDopustT;}						// Превышение допустимой температуры
+				if (T >= Traz)	
+					stat3[iMUK_ZRU] |= errPrevDopustT;						// Превышение допустимой температуры
 				pVkl_Zapr_Razrayd();
 				pOtkl_Test_Razrayd();
 				stat4[iMUK_ZRU] |= br2;
-				LimsCount = vsCount20;	sCount = 0;		bPauza = 1;								// Активация паузы 20 сек
+				PauseOn(20);
 				StepAlgortm = st_t_2_05;																				 
 			}			 
 			else	{																														
 				Calculation();
-				LimsCount = vsCount1;	sCount = 0;		bPauza = 1;									// Активация паузы 1 сек
+				PauseOn(1);
 				calc_dt = calc_dt1;
 				StepAlgortm = st_t_2_04;
 			}	
@@ -1019,23 +1013,22 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 	case st_t_2_05:					
 
 		if ((!bPauza)&&
-					((stat4[iMUK_ZRU2] & br2)||															
-					( stat4[iMUK_ZRU3] & br2)))
-			{
-				if (aI_razr > aIporog)	{																				// Сообщение "Не отключился разряд"=1
-						stat2[iMUK_ZRU] |= errNoOtklRazr;														// Сообщение "Не отключился разряд"=1
-						StepAlgortm = st_t_InitEnd_Alg_TVC;													// ******** Окончание ТВЦ
-				}
-				else	{
-					stat2[iMUK_ZRU] &= ~errNoOtklRazr;						
-					
-					LimsCount = vsCount5;	sCount = 0;		bPauza = 1;								// Активация паузы 5сек
-					
-					stat4[iMUK_ZRU] &= ~br3;																			
-					
-					StepAlgortm = st_t_2_06;
-				}	
+				((stat4[iMUK_ZRU2] & br2) || ( stat4[iMUK_ZRU3] & br2)))
+		{
+			if (aI_razr > aIporog)	{																				// Сообщение "Не отключился разряд"=1
+					stat2[iMUK_ZRU] |= errNoOtklRazr;														// Сообщение "Не отключился разряд"=1
+					StepAlgortm = st_t_InitEnd_Alg_TVC;													// ******** Окончание ТВЦ
+			}
+			else	{
+				stat2[iMUK_ZRU] &= ~errNoOtklRazr;						
+				
+				PauseOn(5);
+				
+				stat4[iMUK_ZRU] &= ~br3;																			
+				
+				StepAlgortm = st_t_2_06;
 			}	
+		}	
 		break;
 	 
 	// ========== Проверка температуры АБ ...................................................................................14
@@ -1050,7 +1043,7 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 				StepAlgortm = st_t_2_07;
 		  }
 			else	{	
-				LimsCount = vsCount5;		sCount=0;		bPauza=1;										// Сброс счётчика 5 сек, включене паузы 5 сек
+				PauseOn(5);
 				StepAlgortm = st_t_2_06;	}
 		}
 		break;   
@@ -1064,16 +1057,15 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 			pOtkl_Zapr_Razrayd();
 			stat4[iMUK_ZRU] &= ~br4;																			// 
 			sCount_2h = 0; 																										//подготавливаем переменную, с помощью которой будем ждать 20 секунд, прежде чем контролировать ток, переменная увеличивается раз в секунду
-			LimsCount = vsCount1;	sCount=0;		bPauza=1;												// Активация паузы 1сек, каждые 1 секунд будем делать Calculation
+			PauseOn(1);
 			// Так как начался разряд, нужно уже начать Calculation, поэтому 
 			calc_dt = calc_dt1; //дельта времени соответствует 1 секундам	
 			Uab_old = Uab;	aI_razrOld = aI_razr; //фиксируем текущие U и I
 			//								
 			StepAlgortm = st_t_2_08;
 		}
-		else	{
+		else	
 			StepAlgortm = st_t_2_07;	
-		}
 		break;   
 			
 	// .......... Ожидание включения разряда ................................................................................11
@@ -1091,12 +1083,12 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 				
 				StepAlgortm = st_t_2_09;
 				
-				LimsCount = vsCount1; 	sCount = 0;		bPauza = 1;									// Активация паузы 1 сек для расчёта W C
+				PauseOn(1);
 				calc_dt = calc_dt1; 																							//дельта времени соответствует 5 секундам					
 			}
 			else  //если же ток еще рано измерять
 			{
-				LimsCount = vsCount1;	sCount=0;		bPauza=1;							// Активация паузы 1сек
+				PauseOn(1);
 				calc_dt = calc_dt1;
 				StepAlgortm = st_t_2_08; 																//зацикливаемся на Calculation и ожидание sCount_2h >= 20
 			}
@@ -1111,20 +1103,21 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 					(T >= Traz)||																									// Контроль температуры
 					(Uab <= 72)||																									// напряжения АБ
 					(Umin_ak <= 0.1)||
-					((stat4[iMUK_ZRU2] & br4)&&																		//
+					((stat4[iMUK_ZRU2] & br4)&&																	
 					( stat4[iMUK_ZRU3] & br4))
 					)																															
 			{			 
-				if	(T >= Traz)	{	stat3[iMUK_ZRU] |= errPrevDopustT;}						// Превышение допустимой температуры
+				if	(T >= Traz)	
+					stat3[iMUK_ZRU] |= errPrevDopustT;						// Превышение допустимой температуры
 				pVkl_Zapr_Razrayd();
 				pOtkl_Test_Razrayd();
 				stat4[iMUK_ZRU] |= br4;
-				LimsCount = vsCount20;	sCount = 0;		bPauza = 1;								// Активация паузы 20 сек
+				PauseOn(20);
 				StepAlgortm = st_t_2_10;																// Переход запрет разряда StepNext=bOtkl_Razrayd;
 			}			 
 			else	{																														
 				Calculation();
-				LimsCount = vsCount1;	sCount = 0;		bPauza = 1;											// Активация паузы 1 сек
+				PauseOn(1);
 				calc_dt = calc_dt1;
 				StepAlgortm = st_t_2_09;
 			}	
@@ -1137,21 +1130,21 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 		if ((!bPauza)&&
 					((stat4[iMUK_ZRU2] & br4)||															
 					( stat4[iMUK_ZRU3] & br4)))
-			{
-				if (aI_razr > aIporog)	{																						// Сообщение "Не отключился разряд"=1
-						stat2[iMUK_ZRU] |= errNoOtklRazr;															// Сообщение "Не отключился разряд"=1
-						StepAlgortm = st_t_InitEnd_Alg_TVC;																// ******** Окончание ТВЦ
-				}
-				else	{
-					stat2[iMUK_ZRU] &= ~errNoOtklRazr;										
-					
-					stat4[iMUK_ZRU] &= ~br5;																			//
-					
-					LimsCount = vsCount5;	sCount = 0;	bPauza = 1;									// Активация паузы 5сек
-					
-					StepAlgortm = st_t_3_01;
-				}	
+		{
+			if (aI_razr > aIporog)	{																						// Сообщение "Не отключился разряд"=1
+					stat2[iMUK_ZRU] |= errNoOtklRazr;															// Сообщение "Не отключился разряд"=1
+					StepAlgortm = st_t_InitEnd_Alg_TVC;																// ******** Окончание ТВЦ
+			}
+			else	{
+				stat2[iMUK_ZRU] &= ~errNoOtklRazr;										
+				
+				stat4[iMUK_ZRU] &= ~br5;																		
+				
+				PauseOn(5);
+				
+				StepAlgortm = st_t_3_01;
 			}	
+		}	
 		break;	
 			
 	// ========== Начало этапа ...................................................................................14
@@ -1159,22 +1152,22 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 		
 		if (!bPauza) {
 			statTVC = 3;	tstatTVC =0;																		// Этап проведения ТВЦ
-			StepAlgortm = st_t_3_02;																			//
+			StepAlgortm = st_t_3_02;																		
 		}
 		break;
 	
 	// ========== Проверка температуры АБ ...................................................................................14
 	case st_t_3_02:
 		
-		if (!bPauza) {																										// Пауза 
-			if	( (T <= 30)||																								// 
+		if (!bPauza) {																								
+			if	( (T <= 30)||																							
 						(( stat4[iMUK_ZRU2] & br5 ) && ( stat4[iMUK_ZRU3] & br5 )) ) 		//если в двух других МК уже есть нужный флаг
 			{								
 				stat4[iMUK_ZRU] |= br5;
-				
+				StepAlgortm = st_t_3_03;
 		  }
 			else	{	
-				LimsCount = vsCount5;		sCount=0;		bPauza=1;										// Сброс счётчика 5 сек, включене паузы 5 сек
+				PauseOn(5);
 				StepAlgortm = st_t_3_02;	}
 		}
 		break;   			
@@ -1183,21 +1176,18 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 	case st_t_3_03:
 		
 		if (( stat4[iMUK_ZRU2] & br5 ) || ( stat4[iMUK_ZRU3] & br5 )) //если хотя бы в одном из двух других МК есть флаг синхронизации
-		{
 			StepAlgortm = st_t_4_01;
-		}
-		else	{
+		else	
 			StepAlgortm = st_t_3_03;	
-		}
 		break;   			
 		
 	// ========== Начало этапа ...................................................................................14
 	case st_t_4_01:
 		
 		statTVC = 4;	tstatTVC =0;																		// Этап проведения ТВЦ
-		pVkl_RS(0);																												// Включаем РС
-		LimsCount = vsCount20;	sCount = 0;		bPauza = 1;									// Активация паузы 20сек
-		StepAlgortm = st_t_4_02;																			//		
+		pVkl_RS(0);																										// Включаем РС
+		PauseOn(20);
+		StepAlgortm = st_t_4_02;																					
 		break;			
 
 	// .......... Ожидание Вкл РС ...........................................................................................17
@@ -1208,33 +1198,33 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 			stat4[iMUK_ZRU] &= ~br6;
 			if	(stat1[iMUK_ZRU] & bPC)	{	
 				stat2[iMUK_ZRU] &= ~errNoVklRS;																	// Собщение "Не включается РС"=0
-				LimsCount = vsCount20;	sCount = 0;		bPauza = 1;								// Активация паузы 20 сек
-				StepAlgortm = st_t_4_03;																		// Переход на счёт времени разряда напряжения до 0
+				PauseOn(20);
+				StepAlgortm = st_t_4_03;																		
 			}	
-			else	{																														// 
+			else	{																										
 				stat2[iMUK_ZRU] |= errNoVklRS;																	// Собщение "Не включается РС"=1
-				LimsCount = vmCount1;		sCount = 0;		bPauza = 1;																				// Активация паузы 1 мин
-				StepAlgortm = st_t_5_01;																					// Переход на включение КОМП
+				PauseOn(60);
+				StepAlgortm = st_t_5_01;																					
 			}		
 		}
 		break;
 		
 	// ========== Разряд АБ с РС не более 30 час ............................................................................18
 	case st_t_4_03:				
-																																				// При отладке ждём 10 сек и сбрасываем флаг bPC[iMUK_ZRU]
+																																				
 		if (!bPauza) {
-			if ((tstatTVC/60 >= tRazr)||																				// Если время разряда достигло предела, timeRazr = 108000сек (30*60*60)		
+			if ((tstatTVC/60 >= tRazr)||																				// Если время разряда достигло предела
 				(Umin_ak <= 0.3)||(!(stat1[iMUK_ZRU] & bPC))||									// или  АБ разряжена, или поступила команда ОТКЛ РС
-				((stat4[iMUK_ZRU2] & br6)&&																	// 
+				((stat4[iMUK_ZRU2] & br6)&&																	
 				( stat4[iMUK_ZRU3] & br6))
 				)
 			{			
-				stat4[iMUK_ZRU] |= br6;																			// На откл РС
+				stat4[iMUK_ZRU] |= br6;																			
 
-				StepAlgortm = st_t_4_04;																					// Переход на отключение разряда РС
+				StepAlgortm = st_t_4_04;																					
 			}	
-			else	{																														// Счёт времени
-				LimsCount = vsCount5;	sCount = 0;		bPauza = 1;								// Активация паузы 5 сек
+			else	{																														
+				PauseOn(5);
 				StepAlgortm = st_t_4_03;
 			}	
 		}	
@@ -1244,22 +1234,24 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 	case st_t_4_04:
 		
 		if (
-				((stat4[iMUK_ZRU2] & br6)||																	// включен запрет Разряда
+				((stat4[iMUK_ZRU2] & br6)||																	
 				( stat4[iMUK_ZRU3] & br6))
 			 ) 
 		{
 			 pOtkl_RS(0);																											// Отключаем РС
-			 LimsCount = vsCount20;	sCount = 0;		bPauza = 1;									// Активация паузы 20сек
-			 StepAlgortm = st_t_4_05;																			// Переход на отключение разряда РС
+			 PauseOn(20);
+			 StepAlgortm = st_t_4_05;																			
 		}	
 		break;
-		
+
+	// ..........  ..............................................................................................19		
 	case st_t_4_05:							
 
 		if (!bPauza) {
-			if	(!stat1[iMUK_ZRU] & bPC)		stat2[iMUK_ZRU] |= errNoOtklRS;			// Собщение "Не отключается РС"
-			LimsCount = vmCount1;		sCount = 0;		bPauza = 1;									// При отладке vmCount5 = 2 сек Активация паузы
-			StepAlgortm = st_t_5_01;																						// Переход на включение КОМП
+			if	(!stat1[iMUK_ZRU] & bPC)		
+				stat2[iMUK_ZRU] |= errNoOtklRS;			// Собщение "Не отключается РС"
+			PauseOn(60);
+			StepAlgortm = st_t_5_01;																						
 		}
 		break;
 		
@@ -1271,8 +1263,8 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 			pVkl_KOMP();
 			pVkl_Test_Zarayd();
 			pOtkl_Zapr_Zarayd();
-			LimsCount = vsCount20;	sCount = 0;		bPauza = 1;									// Активация паузы 20сек
-			StepAlgortm = st_t_5_02;																				// Переход на включение КОМП
+			PauseOn(20);
+			StepAlgortm = st_t_5_02;																				
 		}
 		break;
 	
@@ -1281,11 +1273,10 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 
 		if (!bPauza) {
 			if (aI_zar > aIkomp)	{	
-				stat2[iMUK_ZRU] |= errNoVklCompZar;				// aIkomp = 3; Сообщение "Не включился КОМП заряд"=1
+				stat2[iMUK_ZRU] |= errNoVklCompZar;				//Сообщение "Не включился КОМП заряд"=1
 				StepAlgortm = st_t_6_01;
 			}
 			else	{												
-//				LimsCount = vsCount20;	 sCount = 0;	bPauza = 1;								// Включене паузы 20 сек
 				bPauza = 0;
 				StepAlgortm = st_t_5_03;
 			}	
@@ -1295,15 +1286,16 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 	// ========== Заряд АБ компенсационным током ............................................................................22
 	case st_t_5_03:					
 		
-	if (!bPauza) {																												// При отладке vhCount2 = 20 сек
+		if (!bPauza) {																												// При отладке vhCount2 = 20 сек
 			if	((Uab > 80)&&(tstatTVC/60 >= vmCount10))	
-			{												// 
-				StepAlgortm = st_t_6_01;																		// 
+			{												 
+				StepAlgortm = st_t_6_01;																		
 			}
-			else	{																														// 
-				LimsCount = vsCount20;	 sCount = 0;	bPauza = 1;	}							// Включене паузы 20 сек
+			else	{																														 
+				PauseOn(20);
 				StepAlgortm = st_t_5_03;
 			}
+		}
 		break;
 
 //	// ========== Вспомогательные шаги для восстановления 6-го этапа тестирования .......................................................................
@@ -1330,9 +1322,9 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 	case st_t_6_01:			
 		
 		if (!bPauza) {
-			statTVC = 6;				tstatTVC =0;																	// Этап проведения ТВЦ
+			statTVC = 6;				tstatTVC =0;														// Этап проведения ТВЦ
 			pOtkl_KOMP();
-			LimsCount = vsCount20;	 sCount = 0;	bPauza = 1;								// Включене паузы 20 сек
+			PauseOn(20);
 			StepAlgortm = st_t_6_02;																		// Откл КОМП
 		}
 		break;		
@@ -1342,33 +1334,32 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 		
 		if (!bPauza) {
 			stat2[iMUK_ZRU] &= ~errNoVklCompZar;															// Сообщение "Не включился КОМП заряд"=0
-			if (aI_zar <= aIporog)		stat2[iMUK_ZRU] |= errNoOtklCompZar;			// Сообщение "Не отключился КОМП заряд"=1			
-			stat4[iMUK_ZRU] &= ~br7; //обнуляем переменную синхронизации
+			if (aI_zar <= aIporog)		
+				stat2[iMUK_ZRU] |= errNoOtklCompZar;			// Сообщение "Не отключился КОМП заряд"=1			
+			stat4[iMUK_ZRU] &= ~br7; 
 			StepAlgortm = st_t_6_03;
 		}	
 		break;
-
-
 		
 	// ========== Заряжаем батарею максимальным током .......................................................................24
 	case st_t_6_03:			
 
 		if (!bPauza) {
-			if	((T >= Tn3)||																									// (T>Tn3)||
-					 ((0.8*Pn <= P) && (P <= Pn) && (T >= Tn2))||									// (0.8Pn<=P<=Pn && T>=Tn2)||
-					 ((Pn <= P) && (P <= Pv) && (T >= Tn1))||											// (Pn<=P<=Pv && T>=Tn1)
-					 (P >= Pv)||																									// (P>=Pv)
-					 ((stat4[iMUK_ZRU2] & br7)&&															// 
+			if	((T >= Tn3)||																									
+					 ((0.8*Pn <= P) && (P <= Pn) && (T >= Tn2))||									
+					 ((Pn <= P) && (P <= Pv) && (T >= Tn1))||											
+					 (P >= Pv)||																								
+					 ((stat4[iMUK_ZRU2] & br7)&&															 
 					  (stat4[iMUK_ZRU3] & br7))
 					)	
 			{
 				if (P < Pv)		stat3[iMUK_ZRU] |= errPrevDopustT;								// "Превышение допустимой температуры НВАБ"
 				stat4[iMUK_ZRU] |= br7;
-				LimsCount = vsCount5;		sCount=0;	bPauza=1;											// Для отладки vmCount1 = 2 сек	Сброс счётчика, включене паузы
-				StepAlgortm = st_t_6_04;																				// Для первого заряда StepNext = bOtkl_Zarayd. Для второго StepNext = bCmp_T_Tv_P_Pn
+				PauseOn(5);
+				StepAlgortm = st_t_6_04;																			
 			}	
-			else	{																														// 
-				LimsCount = vmCount1;		sCount=0;	bPauza=1;											// Сброс счётчика, включене паузы
+			else	{																														 
+				PauseOn(60);
 				StepAlgortm = st_t_6_03;									
 			}
 		}	
@@ -1376,13 +1367,11 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 
 	// .......... Синхронизация ..............................................................................................19
 	case st_t_6_04:
-		
-		if (
-				((stat4[iMUK_ZRU2] & br7)||																	// 
-				( stat4[iMUK_ZRU3] & br7))
-			 ) 
-		{
-			 StepAlgortm = st_t_7_01;																			// 
+
+		if (!bPauza) {
+			if ( ((stat4[iMUK_ZRU2] & br7)||																	
+					  (stat4[iMUK_ZRU3] & br7)) ) 
+				 StepAlgortm = st_t_7_01;																			 
 		}	
 		break;				
 		
@@ -1405,7 +1394,7 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 		statTVC = 7;					tstatTVC =0;																// Этап проведения ТВЦ
 		pVkl_KOMP();
 		stat2[iMUK_ZRU] &= ~errNoOtklCompZar;															// Сообщение "Не отключился КОМП заряд"=0
-		LimsCount = vsCount20;	sCount = 0;		bPauza = 1;									// Активация паузы 20сек
+		PauseOn(20);
 		StepAlgortm = st_t_7_02;																			// Переход на проверку включения КОМП
 		break;
 	
@@ -1419,17 +1408,17 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 			}
 			else	{										
 					stat4[iMUK_ZRU] &= ~br8;
-					LimsCount = vsCount10;	sCount = 0;		bPauza = 1;									// Активация паузы 
+					PauseOn(10);
 					StepAlgortm = st_t_7_03;
 			}	
 		}	
 		break;
 		
-	// ========== Заряжаем батарею компенсационным током "КОМП" .............................................................27
+	// ========== Заряжаем батарею компенсационным током "КОМП" .............................................................
 	case st_t_7_03:			
 
 		if (!bPauza) {
-			if (((tstatTVC/60 >= tVir)||(T >= Tk))||																// Для отладки tVir = 10 сек
+			if (((tstatTVC/60 >= tVir)||(T >= Tk))||	
 					((stat4[iMUK_ZRU2] & br8)&&
 					( stat4[iMUK_ZRU3] & br8))
 				)
@@ -1438,25 +1427,25 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 				StepAlgortm = st_t_7_04;
 			}
 			else	{
-				LimsCount = vsCount5;	sCount = 0;	bPauza = 1;			//  
-				StepAlgortm = st_t_7_03;																			//  
+				PauseOn(5); 
+				StepAlgortm = st_t_7_03;																			 
 			}	
 		}
 		break;
 		
-	// ========== Синхронизация .............................................................27
+	// ========== Синхронизация .............................................................
 	case st_t_7_04:			
 
-		if 	((stat4[iMUK_ZRU2] & br8)||																	// 
+		if 	((stat4[iMUK_ZRU2] & br8)||																	 
 				( stat4[iMUK_ZRU3] & br8))
 		{
 			PvzRas = P;
 			pVkl_Zapr_Zarayd();
-			pOtkl_Test_Zarayd();																						//  
+			pOtkl_Test_Zarayd();																						 
 			pOtkl_KOMP();
 
-			LimsCount = vsCount20;	sCount = 0;	bPauza = 1;									//  
-			StepAlgortm = st_t_8_01;															//  
+			PauseOn(20);
+			StepAlgortm = st_t_8_01;															 
 		}
 		break;		
 		
@@ -1465,17 +1454,17 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 		if (!bPauza) {		
 			statTVC = 8;			tstatTVC =0;																		// Этап проведения ТВЦ
 			C_raz = 0;		W_raz = 0;																					// На всякий случай сбрасываем рассчетные параметры		
-			StepAlgortm = st_t_8_02;																			// 
+			StepAlgortm = st_t_8_02;																			 
 		}
 		break;
 	
-	// ========== Включение тестового разряда ...............................................................................10
+	// ========== Включение тестового разряда ...............................................................................
 	case st_t_8_02:				
 		pVkl_Test_Razrayd();
 		pOtkl_Zapr_Razrayd();
-		stat5[iMUK_ZRU] &= ~br9;																			// 
-		sCount_2h = 0; 																										//подготавливаем переменную, с помощью которой будем ждать 20 секунд, прежде чем контролировать ток, переменная увеличивается раз в секунду
-		LimsCount = vsCount1;	sCount=0;		bPauza=1;												// Активация паузы 1сек, каждые 1 секунд будем делать Calculation
+		stat5[iMUK_ZRU] &= ~br9;																			 
+		sCount_2h = 0;	//подготавливаем переменную, с помощью которой будем ждать 20 секунд, прежде чем контролировать ток, переменная увеличивается раз в секунду
+		PauseOn(1);
 		// Так как начался разряд, нужно уже начать Calculation, поэтому 
 		calc_dt = calc_dt1; //дельта времени 
 		Uab_old = Uab;	aI_razrOld = aI_razr; //фиксируем текущие U и I
@@ -1483,7 +1472,7 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 		StepAlgortm = st_t_8_03;																
 		break;
 
-	// .......... Ожидание включения разряда ................................................................................11
+	// .......... Ожидание включения разряда ................................................................................
 	case st_t_8_03:
 		
 		if (!bPauza) {
@@ -1492,28 +1481,24 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 			if (sCount_2h >= 20) //если прошло достаточно времени
 			{
 				if	(aI_razr > aIporog)	
-				//if	(40 > aIkomp)																							// Отладочная заглушка
-				{
 					stat2[iMUK_ZRU] &= ~errNoVklRazr;																// Собщение "Не включился разряд"=0					
-				}
-				else	{						
-					stat2[iMUK_ZRU] |= errNoVklRazr;																// Собщение "Не включился разряд"=1
-				}		
+				else						
+					stat2[iMUK_ZRU] |= errNoVklRazr;																// Собщение "Не включился разряд"=1	
 
 				StepAlgortm = st_t_8_04;
-				LimsCount = vsCount1; 	sCount = 0;		bPauza = 1;												// Активация паузы  сек для расчёта W C
-				calc_dt = calc_dt1; 																							//дельта времени соответствует 1 секундам					
+				PauseOn(1);
+				calc_dt = calc_dt1; 																									
 			}
 			else  //если же ток еще рано измерять
 			{
-				LimsCount = vsCount1;	sCount=0;		bPauza=1;							// Активация паузы 1сек
+				PauseOn(1);
 				calc_dt = calc_dt1;
 				StepAlgortm = st_t_8_03; 																//зацикливаемся на Calculation и ожидание sCount_2h >= 20
 			}
 		}			
 		break;
 	 
-	// ========== Разряд АБ и вычисление C и W ..............................................................................12
+	// ========== Разряд АБ и вычисление C и W ..............................................................................
 	case st_t_8_04:		
 		
 		if (!bPauza) {
@@ -1530,67 +1515,70 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 				pVkl_Zapr_Razrayd();
 				pOtkl_Test_Razrayd();
 				stat5[iMUK_ZRU] |= br9;
-				LimsCount = vsCount20;	sCount = 0;		bPauza = 1;								// Активация паузы 20 сек
-				StepAlgortm = st_t_8_05;																// Переход запрет разряда StepNext=bOtkl_Razrayd;
+				PauseOn(20);
+				StepAlgortm = st_t_8_05;																
 			}			 
 			else	{																														
 				Calculation();
-				LimsCount = dt1;	sCount = 0;		bPauza = 1;											// Активация паузы 1 сек
+				PauseOn(1);
+				calc_dt = calc_dt1;
 				StepAlgortm = st_t_8_04;
 			}	
 		}	
 		break;
 		
-	// ========== Отключаем разряд ..........................................................................................13
+	// ========== Отключаем разряд ..........................................................................................
 	case st_t_8_05:					
 
 		if ((!bPauza)&&
-					((stat5[iMUK_ZRU2] & br9)||															// включен запрет Разряда
+					((stat5[iMUK_ZRU2] & br9)||														
 					( stat5[iMUK_ZRU3] & br9)))
-			{
-				if (aI_razr > aIporog)	{																						// Сообщение "Не отключился разряд"=1
-						stat2[iMUK_ZRU] |= errNoOtklRazr;															// Сообщение "Не отключился разряд"=1
-						StepAlgortm = st_t_InitEnd_Alg_TVC;																// ******** Окончание ТВЦ
-				}
-				else	{
-					stat2[iMUK_ZRU] &= ~errNoOtklRazr;						
-					
-					LimsCount = vsCount5;	sCount = 0;		bPauza = 1;									// Активация паузы 5сек
-					
-					stat5[iMUK_ZRU] &= ~br10;																			//
-					
-					StepAlgortm = st_t_8_06;
-				}	
+		{
+			if (aI_razr > aIporog)	{																						// Сообщение "Не отключился разряд"=1
+					stat2[iMUK_ZRU] |= errNoOtklRazr;															// Сообщение "Не отключился разряд"=1
+					StepAlgortm = st_t_InitEnd_Alg_TVC;																// ******** Окончание ТВЦ
+			}
+			else	{
+				stat2[iMUK_ZRU] &= ~errNoOtklRazr;						
+				
+				PauseOn(5);
+				
+				stat5[iMUK_ZRU] &= ~br10;																			
+				
+				StepAlgortm = st_t_8_06;
 			}	
+		}	
 		break;
 	 
-	// ========== Проверка температуры АБ ...................................................................................14
+	// ========== Проверка температуры АБ ...................................................................................
 	case st_t_8_06:
 			
-		if (!bPauza) {																										// Пауза 
-			if	( (T <= 30)||																								// 
+		if (!bPauza) {																										 
+			if	( (T <= 30)||																								
 						(( stat5[iMUK_ZRU2] & br10 ) && ( stat5[iMUK_ZRU3] & br10 )) ) 		//если в двух других МК уже есть нужный флаг
 			{								
 				stat5[iMUK_ZRU] |= br10;
 				
 				stat3[iMUK_ZRU] &= ~errPrevDopustT;			
+				
+				StepAlgortm = st_t_8_07;
 		  }
 			else	{	
-				LimsCount = vsCount5;		sCount=0;		bPauza=1;										// Сброс счётчика 5 сек, включене паузы 5 сек
+				PauseOn(5);
 				StepAlgortm = st_t_8_06;	}
 		}
 		break;   
 		
-	// ========== Включение тестового разряда ...............................................................................10
+	// ========== Включение тестового разряда ...............................................................................
 	case st_t_8_07:		
 
 		if (( stat5[iMUK_ZRU2] & br10 ) || ( stat5[iMUK_ZRU3] & br10 )) //если хотя бы водном из двух других МК есть флаг синхронизации
 		{
 			pVkl_Test_Razrayd();
 			pOtkl_Zapr_Razrayd();
-			stat5[iMUK_ZRU] &= ~br11;																			// 
-			sCount_2h = 0; 																										//подготавливаем переменную, с помощью которой будем ждать 20 секунд, прежде чем контролировать ток, переменная увеличивается раз в секунду
-			LimsCount = vsCount1;	sCount=0;		bPauza=1;												// Активация паузы 1сек, каждые 1 секунд будем делать Calculation
+			stat5[iMUK_ZRU] &= ~br11;																			 
+			sCount_2h = 0; 	//подготавливаем переменную, с помощью которой будем ждать 20 секунд, прежде чем контролировать ток, переменная увеличивается раз в секунду
+			PauseOn(1);
 			// Так как начался разряд, нужно уже начать Calculation, поэтому 
 			calc_dt = calc_dt1; //дельта времени соответствует 1 секундам	
 			Uab_old = Uab;	aI_razrOld = aI_razr; //фиксируем текущие U и I
@@ -1603,7 +1591,7 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 		}												
 		break;
 	
-	// .......... Ожидание включения разряда ................................................................................11
+	// .......... Ожидание включения разряда ................................................................................
 	case st_t_8_08:
 		
 		if (!bPauza) {
@@ -1612,28 +1600,25 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 			if (sCount_2h >= 20) //если прошло достаточно времени
 			{
 				if	(aI_razr > aIporog)	
-				//if	(40 > aIkomp)																							// Отладочная заглушка
-				{
 					stat2[iMUK_ZRU] &= ~errNoVklRazr;																// Собщение "Не включился разряд"=0				
-				}
-				else	{						
+				else							
 					stat2[iMUK_ZRU] |= errNoVklRazr;																// Собщение "Не включился разряд"=1
-				}		
+				
 				StepAlgortm = st_t_8_09;
 				
-				LimsCount = vsCount1; 	sCount = 0;		bPauza = 1;									// Активация паузы 1 сек для расчёта W C
-				calc_dt = calc_dt1; 																							//дельта времени соответствует 5 секундам					
+				PauseOn(1);
+				calc_dt = calc_dt1; 																							
 			}
 			else  //если же ток еще рано измерять
 			{
-				LimsCount = vsCount1;	sCount=0;		bPauza=1;							// Активация паузы 1сек
+				PauseOn(1);
 				calc_dt = calc_dt1;
 				StepAlgortm = st_t_8_08; 																//зацикливаемся на Calculation и ожидание sCount_2h >= 20
 			}
 		}			
 		break;	
 	
-	// ========== Разряд АБ и вычисление C и W ..............................................................................12
+	// ========== Разряд АБ и вычисление C и W ..............................................................................
 	case st_t_8_09:	
 		
 		if (!bPauza) {
@@ -1641,7 +1626,7 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 					(T >= Traz)||																									// Контроль температуры
 					(Uab <= 72)||																									// напряжения АБ
 					(Umin_ak <= 0.1)||
-					((stat5[iMUK_ZRU2] & br11)&&																		// включен запрет Разряда
+					((stat5[iMUK_ZRU2] & br11)&&																	
 					( stat5[iMUK_ZRU3] & br11))
 					)																															
 			{			 
@@ -1650,46 +1635,45 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 				pOtkl_Test_Razrayd();
 				P0_Ras = P;
 				stat5[iMUK_ZRU] |= br11;
-				LimsCount = vsCount20;	sCount = 0;		bPauza = 1;								// Активация паузы 20 сек
-				StepAlgortm = st_t_8_10;																// Переход запрет разряда StepNext=bOtkl_Razrayd;
+				PauseOn(20);
+				StepAlgortm = st_t_8_10;																
 			}			 
 			else	{																														
 				Calculation();
-				LimsCount = vsCount1;	sCount = 0;		bPauza = 1;											// Активация паузы 1 сек
+				PauseOn(1);
 				StepAlgortm = st_t_8_09;
 			}	
 		}	
 		break;	
 	
-	// ========== Отключаем разряд ..........................................................................................13
+	// ========== Отключаем разряд ..........................................................................................
 	case st_t_8_10:					
 
 		if ((!bPauza)&&
-					((stat5[iMUK_ZRU2] & br11)||															// включен запрет Разряда
+					((stat5[iMUK_ZRU2] & br11)||															
 					( stat5[iMUK_ZRU3] & br11)))
-			{
-				if (aI_razr > aIporog)	{																						// Сообщение "Не отключился разряд"=1
-					//if (aI_razr > 5)	{																							// Отладочная заглушка
-						stat2[iMUK_ZRU] |= errNoOtklRazr;															// Сообщение "Не отключился разряд"=1
-						StepAlgortm = st_t_InitEnd_Alg_TVC;																// ******** Окончание ТВЦ
-				}
-				else	{
-					stat2[iMUK_ZRU] &= ~errNoOtklRazr;										
-					
-					stat5[iMUK_ZRU] &= ~br12;																			//
-					
-					LimsCount = vsCount5;	sCount = 0;		bPauza = 1;									// Активация паузы 5сек
-					
-					StepAlgortm = st_t_8_11;
-				}	
+		{
+			if (aI_razr > aIporog)	{																						// Сообщение "Не отключился разряд"=1
+					stat2[iMUK_ZRU] |= errNoOtklRazr;															// Сообщение "Не отключился разряд"=1
+					StepAlgortm = st_t_InitEnd_Alg_TVC;																// ******** Окончание ТВЦ
+			}
+			else	{
+				stat2[iMUK_ZRU] &= ~errNoOtklRazr;										
+				
+				stat5[iMUK_ZRU] &= ~br12;																			
+				
+				PauseOn(5);
+				
+				StepAlgortm = st_t_8_11;
 			}	
+		}	
 		break;	
 	
-	// ========== Проверка температуры АБ ...................................................................................14
+	// ========== Проверка температуры АБ ...................................................................................
 	case st_t_8_11:
 		
-		if (!bPauza) {																										// Пауза 
-			if	( (T <= 30)||																								// 
+		if (!bPauza) {																										 
+			if	( (T <= 30)||																								 
 						(( stat5[iMUK_ZRU2] & br12 ) && ( stat5[iMUK_ZRU3] & br12 )) ) 		//если в двух других МК уже есть нужный флаг
 			{								
 				stat5[iMUK_ZRU] |= br12;
@@ -1697,38 +1681,37 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 		  }
 			else	{	
 				bPauza = 0;
-				StepAlgortm = st_t_8_11;	}
+				StepAlgortm = st_t_8_11;	
+			}
 		}
 		break;   	
 
-	// .......... Синхронизация ..............................................................................................19
+	// .......... Синхронизация ..............................................................................................
 	case st_t_8_12:
 		
 		if (( stat5[iMUK_ZRU2] & br12 ) || ( stat5[iMUK_ZRU3] & br12 )) //если хотя бы в одном из двух других МК есть флаг синхронизации
-		{
 			StepAlgortm = st_t_9_01;
-		}
 		break;				
 	
-	// ========== Принудительный заряд до рабочей уставки P2 ................................................................28
+	// ========== Принудительный заряд до рабочей уставки P2 ................................................................
 	case st_t_9_01:
-		stat5[iMUK_ZRU] &= ~br13;  /////////		
+		
+		stat5[iMUK_ZRU] &= ~br13;  	
 		statTVC = 9; tstatTVC =0;																						// Этап проведения ТВЦ
 		pOtkl_KOMP();
-		pVkl_Test_Zarayd();																									// 
+		pVkl_Test_Zarayd();																									 
 		pOtkl_Zapr_Zarayd();
 		iUst = 1;																														// N=2
-		LimsCount = vsCount20;	sCount = 0;		bPauza = 1;										// Активация паузы 20сек
-		StepAlgortm = st_t_9_02;																		// На ожидание Заряда
+		PauseOn(20);
+		StepAlgortm = st_t_9_02;																		
 		break;
 			
-	// .......... Ожидание включения Тест Заряда ............................................................................29
+	// .......... Ожидание включения Тест Заряда ............................................................................
 	case st_t_9_02:		
 
 		if (!bPauza) {
 			if	(aI_zar > aIporog)	{	
-				//stat2[iMUK_ZRU] &= ~errNoVklZar;					// Собщение "Не включился Заряд АБ"=0
-				LimsCount = vsCount20;	sCount = 0;		bPauza = 1;								// Активация паузы 20сек
+				PauseOn(20);
 				StepAlgortm = st_t_9_03;
 			}
 			else	{									
@@ -1738,45 +1721,46 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 		}
 		break;
 		
-	// ========== Заряжаем батарею ..........................................................................................30
+	// ========== Заряжаем батарею ..........................................................................................
 	case st_t_9_03:			
 
 		if (!bPauza) {
-			if	((P >= Pvuz2)||((T >= T_max)&&(P>=0.8*Pvuz2))||
-					 ((stat5[iMUK_ZRU2] & br13)&&															// включен запрет Разряда
+			if	((P >= Pvuz2)||((T >= T_max)&&(P>=0.8*Pvuz2)) ||
+					 ((stat5[iMUK_ZRU2] & br13)&&															
 					  (stat5[iMUK_ZRU3] & br13))
 					)
 			{			 
 				pVkl_Zapr_Zarayd();																							// ВКЛ ЗАПР ЗАР
-				pOtkl_Test_Zarayd();																						// ОТКЛ ТЕСТ ЗАРЯД ВКЛ ЗАПР ЗАР и т.д.
+				pOtkl_Test_Zarayd();																						// ОТКЛ ТЕСТ ЗАРЯД 
 				stat5[iMUK_ZRU] |= br13;
 				StepAlgortm = st_t_9_04;									
 			}	
-			else	{																														// 
+			else	{																														
 				StepAlgortm = st_t_9_03;									
 			}
-			LimsCount = vsCount20;	sCount = 0;		bPauza = 1;									// Активация паузы 20сек
+			PauseOn(20);
 		}	
 		break;
 		
-	// .......... Синхронизация ................................................................................31
+	// .......... Синхронизация ................................................................................
 	case st_t_9_04:			
 	
 		if (!bPauza) {
 			if 	((stat5[iMUK_ZRU2] & br13)||															
 					( stat5[iMUK_ZRU3] & br13))
 			{
-				if	(aI_zar > aIporog)	stat2[iMUK_ZRU] |= errNoOtklZar;						// Собщение "Не отключился Заряд АБ"=1
-				StepAlgortm = st_t_9_05;																					// 
+				if	(aI_zar > aIporog)	
+					stat2[iMUK_ZRU] |= errNoOtklZar;						// Собщение "Не отключился Заряд АБ"=1
+				StepAlgortm = st_t_9_05;																					 
 			}
 			else	{
 				StepAlgortm = st_t_9_04;									
-				LimsCount = vsCount5;	sCount = 0;		bPauza = 1;										// Активация паузы 5сек
+				PauseOn(5);
 			}	
 		}
 		break;
 		
-	// ========== Выбор уставки .............................................................................................32
+	// ========== Выбор уставки .............................................................................................
 	case st_t_9_05:
 
 		if	((dP >= dP_u)||(dUak>=dU_u))	iUst=2;															// N=3
@@ -1787,7 +1771,7 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 		StepAlgortm = st_t_InitEnd_Alg_TVC;
 		break;
 
-	// ========== Завершение алгоритма ......................................................................................33
+	// ========== Завершение алгоритма ......................................................................................
 	case st_t_InitEnd_Alg_TVC:	
 
 		mode = Otkl_TEST;
@@ -1806,7 +1790,7 @@ void Podzarayd (void)														/*	_Подзаряд__Н_В_А_Б_ */
 	// .......... Инициализация .............................................................................................
 	case st_p_InitPodzar:				
 		pVkl_Zapr_Zarayd();																								// Запрет заряда=1
-		LimsCount = vsCount20;	sCount=0;		bPauza=1;												// Активация паузы 20 сек
+		PauseOn(20);
 		StepAlgortmPodzar = st_p_1;															// След шаг алгоритма Ожидание включения запрета заряда
 		break;
 	
@@ -1841,7 +1825,7 @@ void Podzarayd (void)														/*	_Подзаряд__Н_В_А_Б_ */
 	// .......... Отключаем запрет заряда ...................................................................................
 	case st_p_5:								
 		pOtkl_Zapr_Zarayd();																								// ОТКЛ ЗАПР ЗАРЯДА
-		LimsCount = vsCount5;	sCount=0;		bPauza=1;													// Активация паузы 5 сек
+		PauseOn(5);
 		StepAlgortmPodzar = st_p_6;
 		break;
 		
@@ -1857,12 +1841,12 @@ void Podzarayd (void)														/*	_Подзаряд__Н_В_А_Б_ */
 			if (T >= TnuzAB)	{	
 				stat3[iMUK_ZRU] |= errPrevDopustT;															// Сообщение "Превышение допустимой температуры при заряде"
 				pVkl_Zapr_Zarayd ();																						// Запрет заряда=1
-				LimsCount = vsCount20;	sCount=0;		bPauza=1;										// Активация паузы 20 сек
+				PauseOn(20);
 				StepAlgortmPodzar = st_p_9;													// След шаг алгоритма Ожидание включения запрета заряда
 			}
 			else	{
 				stat3[iMUK_ZRU] &= ~errPrevDopustT;															// "Превышение допустимой температуры при заряде" = 0
-				LimsCount = dt5;	sCount=0;		bPauza=1;													// Активация паузы 5сек
+				PauseOn(5);
 				StepAlgortmPodzar = st_p_8;																			// Переход на заряд
 			}
 		//}
@@ -1893,7 +1877,7 @@ void Podzarayd (void)														/*	_Подзаряд__Н_В_А_Б_ */
 				StepAlgortmPodzar = st_p_5;																	// След шаг алгоритма Ожидание включения запрета заряда
 			}
 			else	{
-				LimsCount = vsCount20;	sCount=0;		bPauza=1;										// Активация паузы 20сек
+				PauseOn(20);
 				StepAlgortmPodzar = st_p_10;																		// Переход на отключение запрета заряда
 			}
 		}
@@ -1903,7 +1887,7 @@ void Podzarayd (void)														/*	_Подзаряд__Н_В_А_Б_ */
 	case st_p_3:		
 		pVkl_KOMP();																												// Вкл_КОМП
 		pOtkl_Zapr_Zarayd();																								// ОТКЛ ЗАПР ЗАРЯДА
-		LimsCount = vsCount20;	sCount=0;		bPauza=1;												// Активация паузы 20сек
+		PauseOn(20);
 		StepAlgortmPodzar = st_p_11;																					// Ожидание остывания АБ
 		break;
 
@@ -1918,7 +1902,7 @@ void Podzarayd (void)														/*	_Подзаряд__Н_В_А_Б_ */
 			}
 			else	{
 				stat2[iMUK_ZRU] &= ~errNoVklCompZar;
-				LimsCount = dt5;	sCount=0;		bPauza=1;														// Активация паузы 5сек
+				PauseOn(5);
 				StepAlgortmPodzar = st_p_12;																					// След шаг алгоритма
 			}
 		}
@@ -1933,18 +1917,18 @@ void Podzarayd (void)														/*	_Подзаряд__Н_В_А_Б_ */
 				{																					// T >= 25
 					stat3[iMUK_ZRU] |= errPrevDopustT;														// Сообщение "Превышение допустимой температуры при заряде"
 					pVkl_Zapr_Zarayd();																						// Вкл Запрет Заряда
-					LimsCount = vsCount20;	sCount=0;		bPauza=1;												// Активация паузы 20сек
+					PauseOn(20);
 					StepAlgortmPodzar = st_p_15;				
 				}
 				else {
 					pVkl_Zapr_Zarayd();																						// Вкл Запрет Заряда
 					pOtkl_KOMP();	
-					LimsCount = vsCount20;	sCount=0;		bPauza=1;													// Активация паузы 20сек
+					PauseOn(20);
 					StepAlgortmPodzar = st_p_13;
 				}
 			}
 			else	{
-				LimsCount = vsCount5;	sCount=0;		bPauza=1;											// Активация паузы 5сек
+				PauseOn(5);
 				StepAlgortmPodzar = st_p_12;																				// След шаг алгоритма
 			}
 		}
@@ -1967,7 +1951,7 @@ void Podzarayd (void)														/*	_Подзаряд__Н_В_А_Б_ */
 				StepAlgortmPodzar = st_p_12;																	// След шаг алгоритма Ожидание включения запрета заряда
 			}
 			else	{
-				LimsCount = vsCount20;	sCount=0;		bPauza=1;										// Активация паузы 20сек
+				PauseOn(20);
 				StepAlgortmPodzar = st_p_16;														// зацикливаемся
 			}
 		}
@@ -2506,12 +2490,12 @@ void Zaryd_NVAB (void)													/* _З_А_Р_Я_Д___Н_В_А_Б_ */
 				if ((iUst==2)&&(T >= Tu[2])&&(P >= 0.5*Pu[2]))	iUst=1;					// N=2
 				pOtkl_Zapr_Zarayd ();																						// Запрет заряда=0		
 				stat2[iMUK_ZRU] &= ~errNoOtklZar;																// Собщение "Не отключился заряд АБ"=0	
-				LimsCount = vsCount20;	sCount=0;		bPauza=1;										// Активация паузы 20 сек
+				PauseOn(20);
 				StepAlgortmZar = st_z_5;
 			}	
 			else	{																														// Если давление выше
 				pVkl_Zapr_Zarayd ();																						// Запрет заряда=1
-				LimsCount = vsCount20;	sCount=0;		bPauza=1;										// Активация паузы 20 сек
+				PauseOn(20);
 				StepAlgortmZar = st_z_4;
 			}
 		}
@@ -2542,7 +2526,7 @@ void Zaryd_NVAB (void)													/* _З_А_Р_Я_Д___Н_В_А_Б_ */
 			if	(P <= 0.8*Pu[iUst])	{																					
 				stat3[iMUK_ZRU] |= errPrevDopustT;															// "Превышение допустимой температуры НВАБ"=1
 				pVkl_Zapr_Zarayd ();																						// Запрет заряда=1
-				LimsCount = vsCount5;	sCount=0;		bPauza=1;											// Активация паузы 5 сек
+				PauseOn(5);
 				StepAlgortmZar = st_z_7;																		// След шаг алгоритма Ожидание включения запрета заряда
 			}	
 			else	{																														// Не включился заряд.
@@ -2558,7 +2542,7 @@ void Zaryd_NVAB (void)													/* _З_А_Р_Я_Д___Н_В_А_Б_ */
 	case st_z_7:
 		if (!bPauza) {
 			if	(aI_zar > aIporog)	stat2[iMUK_ZRU] |= errNoOtklZar;					// Собщение "Не отключился Заряд АБ"=1
-			LimsCount = vsCount20;	sCount=0;		bPauza=1;											// Активация паузы 20 сек			
+			PauseOn(20);		
 			StepAlgortmZar = st_z_8;
 		}
 		break;
@@ -2569,12 +2553,12 @@ void Zaryd_NVAB (void)													/* _З_А_Р_Я_Д___Н_В_А_Б_ */
 			if	(T <= T_max-2)	{																							// Отключаем заряд. Вкл_КОМП = ОТКЛ ЗАРЯД
 				pOtkl_Zapr_Zarayd ();																						// Запрет заряда=0
 				stat3[iMUK_ZRU] &= ~errPrevDopustT;															// "Превышение допустимой температуры НВАБ"=0
-				LimsCount = vsCount5;	sCount=0;		bPauza=1;											// Активация паузы 20сек
+				PauseOn(5);
 				StepAlgortmZar = st_z_9;														// След шаг алгоритма Ожидание отключения запрета заряда
 			}
 			else {	
 				StepAlgortmZar = st_z_8;														    // зацикливаемся, пока температура не снизится
-				LimsCount = vsCount20;	sCount=0;		bPauza=1;										// Активация паузы 20сек
+				PauseOn(20);
 			}
 		}
 		break;
@@ -2583,7 +2567,7 @@ void Zaryd_NVAB (void)													/* _З_А_Р_Я_Д___Н_В_А_Б_ */
 	case st_z_9:
 		if	(P >= Pu[iUst])	{																								
 			pVkl_Zapr_Zarayd ();																							// Включить Запрет заряда=1
-			LimsCount = vsCount20;	sCount=0;		bPauza=1;											// Активация паузы 20сек
+			PauseOn(20);
 			StepAlgortmZar =  st_z_10;
 		}	
 		else	{
@@ -2652,11 +2636,11 @@ void Zaryd_NVAB_noCAN (void)											/* _З_А_Р_Я_Д___Н_В_А_Б_ по п
 	case st_z_3:
 		if	(!ZaprZarProv)	{																								// Включение заряда
 			pOtkl_Zapr_Zarayd ();																						// Запрет заряда=0
-			LimsCount = vsCount20;	sCount=0;		bPauza=1;											// Активация паузы 5 сек
+			PauseOn(20);
 			StepAlgortmZar = st_z_4;
 		}	
 		else	{																														// Ожинание снятия Запрета Заряда
-			LimsCount = vsCount20;	sCount=0;		bPauza=1;										// Активация паузы 20 сек
+			PauseOn(20);
 			StepAlgortmZar = st_z_1;
 		}
 		break;
@@ -2681,13 +2665,13 @@ void Zaryd_NVAB_noCAN (void)											/* _З_А_Р_Я_Д___Н_В_А_Б_ по п
 	case st_z_6:																											// ОтклЗапЗар
 		if	(ZaprZarProv)	{																										// Отключаем заряд. Вкл_КОМП = ОТКЛ ЗАРЯД
 				pVkl_Zapr_Zarayd ();																						// Запрет заряда=1
-				LimsCount = vsCount20;	sCount=0;		bPauza=1;										// Активация паузы 20 сек
+				PauseOn(20);
 				StepAlgortmZar = st_z_7;															// След шаг алгоритма Ожидание включения запрета заряда
 		}
 		else	{																															// Не включился заряд.
 			if (mode_Razryad)		StepAlgortmZar = st_z_1;									// Выход из "Петли"
 			else	{							StepAlgortmZar = st_z_5;									// "Петля" - процесс заряда
-				LimsCount = vsCount20;	sCount=0;		bPauza=1;										// Активация паузы 20 сек
+				PauseOn(20);
 			}
 		}
 		break;
@@ -2737,7 +2721,7 @@ void Razryd_NVAB (void)													/* _Р_А_З_Р_Я_Д___Н_В_А_Б_ */
 				stat3[iMUK_ZRU] |= errNoOgrTokRazr;			// Собщение "Не ограничен ток разряда" = 1
 			else											 
 				stat3[iMUK_ZRU] &= ~errNoOgrTokRazr;		// Собщение "Не ограничен ток разряда" = 0
-			LimsCount_R = dt1; 	 sCount_R=0;	bPauza_R=1;												
+			LimsCount_R = vsCount1;		sCount_R=0;	bPauza_R=1;												
 			calc_dt = calc_dt1; //дельта времени соответствует 1 секундам
 			Uab_old = Uab;		aI_razrOld = aI_razr;
 			StepAlgortmRazr = st_r_2;																		// Переход на разряд с подсчётом C и W
@@ -2757,7 +2741,7 @@ void Razryd_NVAB (void)													/* _Р_А_З_Р_Я_Д___Н_В_А_Б_ */
 				else	{				
 					if (mode_Razryad)	 stat3[iMUK_ZRU] &= ~errPrevDopustT;			//снимаем сообщение об аварии только если мы находились в режиме разряд				
 				}
-				LimsCount_R = dt1; 	 sCount_R=0;	bPauza_R=1;												
+				LimsCount_R = vsCount1; 	 sCount_R=0;	bPauza_R=1;												
 				calc_dt = calc_dt1; //дельта времени соответствует 1 секундам
 				StepAlgortmRazr = st_r_2; //зацикливаемся
 			}	
@@ -2841,7 +2825,7 @@ void Razryd_NVAB_noCAN (void)													/* _Р_А_З_Р_Я_Д___Н_В_А_Б_ �
 		}	
 		else											 {stat3[iMUK_ZRU] &= ~errNoOgrTokRazr;
 		}	
-		LimsCount_R = dt5; 	 sCount_R=0;	bPauza_R=1;												/*Razr;*/
+		LimsCount_R = vsCount5; 	 sCount_R=0;	bPauza_R=1;												/*Razr;*/
 		calc_dt = calc_dt5; //дельта времени соответствует 5 секундам		
 		vU_zru_Old = vU_zru;		aI_razrOld = aI_razr;
 		StepAlgortmRazr = st_r_8;																		// Переход на контроль ЗРП с подсчётом C и W
@@ -3271,7 +3255,7 @@ int main(void)
 	mode = Init_Run;																											// Начальрый режим
 	cntReadyWrk = 0;																											// Счётчик задержки 3 секунды
 	bPauza5 = 1;	bOneSec = 0;
-	calc_dt = calc_dt5; 																									//по умолчанию дельта времени для расчета W и С будет соответствовать 5 секундам
+	calc_dt = calc_dt1; 																									//по умолчанию дельта времени для расчета W и С будет соответствовать 1 секундам
 	
 	MakePack2_5_8_10();
 	MakePack3();	InitPack4();
