@@ -21,6 +21,7 @@ extern unsigned char bReqBCU[2];															// Флаг: поступил з�
 extern volatile unsigned char mode;														// Текущий режим работы контроллера, последний режим работы
 //extern volatile unsigned int Errors;													// Слово состояния ошибок аппаратуры
 extern volatile unsigned char iUst;														// Индекс текущей уставки 0..nUst-1
+extern volatile unsigned char iUst_mas[3];										// Значения уставок всех трех МК
 
 extern unsigned char stat1[3], stat2[3], stat3[3], stat4[3], stat5[3];
 
@@ -318,7 +319,7 @@ void CAN_SendStatusZRU(void)
 	else
 		stat3[iMUK_ZRU] &= ~RestData; // Флаг на восстановление данных, обмениваемся индивидуальными значениями между МУКами	
 	
-	DATAH_2 = (mk_be_res[iMUK_ZRU] << 1) | mk_be_osn[iMUK_ZRU]; //подготавливаем байт для отправки, в первом бите информация о связи по основному каналу с МК БЭ, во втором бите - по резервному
+	DATAH_2 = ((iUst & 0x3) << 2) | (mk_be_res[iMUK_ZRU] << 1) | mk_be_osn[iMUK_ZRU]; //подготавливаем байт для отправки, в первом бите информация о связи по основному каналу с МК БЭ, во втором бите - по резервному, в третьем и четвертом - уставка
 	
 	// Очистим буфер
 	MDR_CAN1->CAN_BUF[lbuf_TX].ID 				=0;
