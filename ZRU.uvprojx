@@ -14,16 +14,15 @@
       <uAC6>0</uAC6>
       <TargetOption>
         <TargetCommonOption>
-          <Device>MDR1986BE92</Device>
+          <Device>MDR32F9Q2I</Device>
           <Vendor>Milandr</Vendor>
-          <PackID>Keil.MDR1986BExx.1.51</PackID>
-          <PackURL>http://www.keil.com/pack/</PackURL>
-          <Cpu>IROM(0x08000000,0x20000) IRAM(0x20000000,0x8000) CPUTYPE("Cortex-M3") CLOCK(12000000) ELITTLE</Cpu>
+          <PackID>Milandr.MDR32FxQI.1.2.0</PackID>
+          <Cpu>IRAM(0x20000000,0x8000) IROM(0x08000000,0x20000) CPUTYPE("Cortex-M3") CLOCK(12000000) ELITTLE</Cpu>
           <FlashUtilSpec></FlashUtilSpec>
           <StartupFile></StartupFile>
-          <FlashDriverDll>UL2CM3(-S0 -C0 -P0 -FD20000000 -FC8000 -FN1 -FF01986BE9x -FS08000000 -FL020000 -FP0($$Device:MDR1986BE92$Flash\1986BE9x.FLM))</FlashDriverDll>
+          <FlashDriverDll>UL2CM3(-S0 -C0 -P0 -FD20000000 -FC8000 -FN1 -FF0MDR32F9xI -FS08000000 -FL020000 -FP0($$Device:MDR32F9Q2I$FLM\MDR32F9xI.FLM))</FlashDriverDll>
           <DeviceId>0</DeviceId>
-          <RegisterFile>$$Device:MDR1986BE92$Libraries\CMSIS\CM3\DeviceSupport\MDR32F9Qx\inc\MDR32Fx.h</RegisterFile>
+          <RegisterFile>$$Device:MDR32F9Q2I$Libraries\CMSIS\MDR32FxQI\DeviceSupport\MDR32F9Q2I\inc\MDR32F9Q2I.h</RegisterFile>
           <MemoryEnv></MemoryEnv>
           <Cmp></Cmp>
           <Asm></Asm>
@@ -33,7 +32,7 @@
           <SLE66CMisc></SLE66CMisc>
           <SLE66AMisc></SLE66AMisc>
           <SLE66LinkerMisc></SLE66LinkerMisc>
-          <SFDFile>$$Device:MDR1986BE92$IDE\keil\SVD\MDR1986BE92.svd</SFDFile>
+          <SFDFile>$$Device:MDR32F9Q2I$IDE\SVD\MDR32F9Q2I.svd</SFDFile>
           <bCustSvd>0</bCustSvd>
           <UseEnv>0</UseEnv>
           <BinPath></BinPath>
@@ -110,11 +109,11 @@
         </CommonProperty>
         <DllOption>
           <SimDllName>SARMCM3.DLL</SimDllName>
-          <SimDllArguments> -REMAP</SimDllArguments>
+          <SimDllArguments> -REMAP -MPU</SimDllArguments>
           <SimDlgDll>DCM.DLL</SimDlgDll>
           <SimDlgDllArguments>-pCM3</SimDlgDllArguments>
           <TargetDllName>SARMCM3.DLL</TargetDllName>
-          <TargetDllArguments></TargetDllArguments>
+          <TargetDllArguments> -MPU</TargetDllArguments>
           <TargetDlgDll>TCM.DLL</TargetDlgDll>
           <TargetDlgDllArguments>-pCM3</TargetDlgDllArguments>
         </DllOption>

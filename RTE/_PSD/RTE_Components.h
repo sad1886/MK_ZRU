@@ -14,7 +14,7 @@
 /*
  * Define the Device Header File: 
  */
-#define CMSIS_device_header "MDR32Fx.h"
+#define CMSIS_device_header "MDR32F9Q2I.h"
 
 
 
