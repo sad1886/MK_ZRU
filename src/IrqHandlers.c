@@ -520,6 +520,7 @@ void UART1_IRQHandler(void)
 						case gUstavki_Tst:																										// контроль параметров (уставок) алгоритмов ЗРУ
 						case gSaveData_to_BCU:																								// запоминаемые для восстановления данные в БВС 
 						case gService:																												// вспомогательные данные 
+						case gVersion:																												// версия прошивки
 						case gTstLine:						lngPack1 = lngStat_ZRU;			break;					// проверка связи
 						
 						case gCmd_for_ZRU:				lngPack1 = lngCmd_ZRU;			break;					// команда для ЗРУ
@@ -612,7 +613,8 @@ void UART2_IRQHandler(void)
 						case gStat_AB_Full:																										// Сост_АБ_Полн_БЭ – полная телеметрия БЭ
 						case gUstavki_Tst:																										// контроль параметров (уставок) алгоритмов ЗРУ
 						case gSaveData_to_BCU:																								// запоминаемые для восстановления данные в БВС 
-						case gService:																												// вспомогательные данные 							
+						case gService:																												// вспомогательные данные 		
+						case gVersion:																												// версия прошивки							
 						case gTstLine:						lngPack2 = lngStat_ZRU;			break;					// проверка связи
 						
 						case gCmd_for_ZRU:				lngPack2 = lngCmd_ZRU;			break;					// команда для ЗРУ

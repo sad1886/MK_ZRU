@@ -210,7 +210,8 @@ extern unsigned char PackRs4[lngPackRs4];													// Ответ на пак�
 extern unsigned char PackRs5[lngPackRs5];													// Ответ на пакет 5
 extern unsigned char PackRs6[lngPackRs6];													// Ответ на пакет 6
 extern unsigned char PackRs7[lngPackRs7];													// Ответ на пакет 7
-extern unsigned char PackRs8[lngPackRs8];													// Ответ на пакет 7
+extern unsigned char PackRs8[lngPackRs8];													// Ответ на пакет 8
+extern unsigned char PackRs254[lngPackRs254];											// Ответ на пакет 7
 extern unsigned char PackRs10[lngPackRs10];												// Ответ на пакет 10
 
 extern unsigned char * p_ParRs;
@@ -2404,6 +2405,19 @@ void MakePack8(void)	// Заполнение пакета 8
 }
 
 //-------------------------------------------------------------------------------------------------------------------------
+void MakePack254(void)	// Заполнение пакета 254	
+{		
+	PackRs254[4] = ver1;
+	PackRs254[5] = ver2;
+	PackRs254[6] = ver3;
+								
+	checksumCalc = Crc16(PackRs254, lngPackRs254-2);													// Выисление контрольной суммы
+	*(PackRs254+lngPackRs254-1) =  checksumCalc;	
+	*(PackRs254+lngPackRs254-2) =  checksumCalc >> 8;													// Добавить контрольную сумму
+}
+
+
+//-------------------------------------------------------------------------------------------------------------------------
 void TVC_restore(void)	// Восстановление ЭТВЦ
 {		
 	if((ETVC == 0)||(ETVC > 9)) //если приняли некорректное значение ЭТВЦ
@@ -3161,6 +3175,8 @@ void WrkCmd_1(void)
 												p_ParRs1 = PackRs7;	BatchSize1 = lngPackRs7;	break;		// запоминаемые для восстановления данные в БВС 
 	case	gService:
 												p_ParRs1 = PackRs8;	BatchSize1 = lngPackRs8;	break;		// вспомогательные данные 	
+	case	gVersion:
+												p_ParRs1 = PackRs254;	BatchSize1 = lngPackRs254;	break;		// вспомогательные данные 	
 	case	gTstLine:				
 												p_ParRs1 = PackRs10;BatchSize1 = lngPackRs10;	break;		// 0xFF	проверка связи
 	}
@@ -3225,6 +3241,8 @@ void WrkCmd_2(void)
 												p_ParRs2 = PackRs7;	BatchSize2 = lngPackRs7;	break;		// 0x7	запоминаемые для восстановления данные в БВС 
 	case	gService:
 												p_ParRs2 = PackRs8;	BatchSize2 = lngPackRs8;	break;		// вспомогательные данные 		
+	case	gVersion:
+												p_ParRs2 = PackRs254;	BatchSize2 = lngPackRs254;	break;		// вспомогательные данные 		
 	case	gTstLine:				
 												p_ParRs2 = PackRs10;BatchSize2 = lngPackRs10;	break;		// 0xFF	проверка связи
 	}
@@ -3308,6 +3326,7 @@ int main(void)
 	MakePack2_5_8_10();
 	MakePack3();	InitPack4();
 	InitPack1();	MakePack6();
+	MakePack254(); //пакет с версией прошивки заполняем один раз
 	
 	while (1)												
 	{
