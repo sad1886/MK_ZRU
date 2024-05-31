@@ -2081,7 +2081,7 @@ void MakePack1(void)	// Заполнение пакета телем. данны
 	ust_mag = MajorUst();
 
 	tmp = MajorStatZRU(stat1);
-	PackRs1[12] = (tmp & 0x63) | ((ust_mag+1)<<6);	//мажоритированная уставка
+	PackRs1[12] = (tmp & 0x3F) | ((ust_mag+1)<<6);	//мажоритированная уставка
 	PackRs1[13] = tmp>>8;
 	
 	tmp = MajorStatZRU(stat2);
@@ -2089,7 +2089,7 @@ void MakePack1(void)	// Заполнение пакета телем. данны
 	PackRs1[15] = tmp>>8;
 
 	tmp = MajorStatZRU(stat3);
-	PackRs1[16] = (tmp & 0x63) | ((iUst+1)<<6);	//индвидуальная уставка
+	PackRs1[16] = (tmp & 0x3F) | ((iUst+1)<<6);	//индвидуальная уставка
 
 	checksumCalc = Crc16(PackRs1, lngPackRs1-2);													// Вычисление контрольной суммы
 	*(PackRs1+lngPackRs1-1) =  checksumCalc;	
@@ -3113,6 +3113,8 @@ void ZRU_Init(void)
 	Init_Param();
 	/*	ОТКЛ.АБ, ОТКЛ.СЭС, ВКЛ КОМП, ВКЛ ЗАПРЕТ ЗАРЯД, ВКЛ ЗАПРЕТ РАЗРЯД, ВЫКЛ ТЕСТ ЗАРЯД, ВЫКЛ ТЕСТ РАЗРЯД, ЗАПР ШИМ ЗРУ. №уст = 2 */
 	
+	Var_init();																														// Инициализация переменных	
+	
 	vkl = ((1<<3)& MDR_PORTA->RXTX);	//считываем состояние РА3
 	if(vkl)
 		pVkl_Shim_ZRU(0);
@@ -3125,8 +3127,6 @@ void ZRU_Init(void)
 	pOtkl_Test_Razrayd();																									// «ОТКЛ ТЕСТ РАЗРЯД»,
 	pOtkl_RS(0);
 	Wait(30);																															// Ожидание завершения коммутации силовый цепей
-
-	Var_init();																														// Инициализация переменных
 
 	EnableIRQ_ADC_CAN_UART();
 }
@@ -3144,8 +3144,11 @@ void WrkCmd_1(void)
 						cmd	= 0x0f & *(pack1+4);																						// В 5-ом байте принятого пакета команда (код)
 						
 						switch (cmd)	{
-						case gVkl_ZRU:				mode = Vkl_ZRU;  									 						// 0x1 Вкл_ЗРУ
-											if (!tVkl_ZRU) tVkl_ZRU = 10;				break;								// 1 сек
+						case gVkl_ZRU:				
+											mode = Vkl_ZRU;  									 						// 0x1 Вкл_ЗРУ
+											if (!tVkl_ZRU) 
+												tVkl_ZRU = 10;															// 1 сек
+											break;								
 						case gOtkl_ZRU:				mode = Otkl_ZRU;				break;			 					// 0x2 Откл_ЗРУ
 						case gVkl_Test:	 																										// 0x3 Вкл_ТЕСТ. Первый шаг алгоритма ТВЦ
 							if(DataOk)
@@ -3318,7 +3321,7 @@ int main(void)
 	
 	ZRU_Init();																														// 
 
-	mode = Init_Run;																											// Начальрый режим
+	mode = START;																											// Начальрый режим
 	cntReadyWrk = 0;																											// Счётчик задержки 3 секунды
 	bPauza5 = 1;	bOneSec = 0;
 	calc_dt = calc_dt1; 																									//по умолчанию дельта времени для расчета W и С будет соответствовать 1 секундам
@@ -3345,13 +3348,13 @@ int main(void)
 		//.....................................................................................................................
 		if (bOneSec)	{		bOneSec=0;																				// Раз в секунду
 			
-			if (!mode)	{	mode = Init_Run;	}																	// Переход в рабочий режим при старте программы
+			if (!mode)	{	mode = START;	}																	// Переход в рабочий режим при старте программы
 			// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .	
 			if	((updateD1)&&(updateD2))	{																		// Получены все фрейимы пакета1 и пакета2
 				GetDataFromCan(); 																							// Забираем из пакетов нужную нам телеметрию
 				MakePack3();	MakePack4();																			// if ((!bReqBCU[0])&&(!bReqBCU[1]))	{	MakePack3();	MakePack4(); }
 				cnt_can=0;	updateD1=0;		updateD2=0;
-				if (mode == CAN_not_working)	{mode = Init_Run;}
+				if (mode == CAN_not_working)	{mode = START;}
 				DataOk = 1;
 			}
 			// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -3436,10 +3439,7 @@ int main(void)
 		
 		//.....................................................................................................................
 		switch (mode)																												// Обработчик состояний
-		{
-			case Init_Run:																										// Инициализация всех процессов при старте или сбоях
-				Var_init();																											// Инициализация переменных
-		
+		{		
 			case START:																												// Начальный запуск
 				stat1[iMUK_ZRU] |= bMain;
 				ResetAvars();  											
@@ -3527,14 +3527,7 @@ int main(void)
 				break;
 			
 			case ADC_ERR:																											// Повтор чтения текущего канала АЦП
-//				ADC_Start(iadc);																								// Перезапуск опроса каналов АЦП
-//				MDR_ADC->ADC1_CFG |= ADC1_CFG_REG_GO;														// Запуск преобразования
-				mode = Init_Run;																								// 
-				break;
-			
-			case RESTART:																											// Рестарт UART и переход в прерванный режим
-				mode = Init_Run;																								// 
-				break;
+				break;			
 			
 			case CAN_not_working:																							// Отказ CAN				
 				bZarRazr = !bZarRazr;
