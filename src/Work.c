@@ -36,6 +36,7 @@ extern int add_nbuf;
 extern uint32_t Result;
 
 //шаги разных алгоритмов
+enum TestSteps StepAlgortmTest;	
 enum ZarSteps StepAlgortmZar;
 enum RazSteps StepAlgortmRazr; 
 enum PodzarSteps StepAlgortmPodzar;
@@ -506,6 +507,7 @@ void PutParamADC (void)																																				// С 14.07.20
 				// Получение значений Зарядного и Разрядного токов
 				if (aI_zar_dt[iadc-1]<0.5)	aI_zar_dt[iadc-1] = 0; //если значение ниже порога, то считаем ток нулевым
 				aI_zar = (aI_zar_dt[0] + aI_zar_dt[1])/2;
+				aI_razr_dt[0] = aI_razr_dt[1] = 0;
 				aI_razr = 0;
 			}																																																		
 			else
@@ -527,6 +529,7 @@ void PutParamADC (void)																																				// С 14.07.20
 				// Получение значений Зарядного и Разрядного токов
 				if (aI_razr_dt[iadc-1]<0.5)		aI_razr_dt[iadc-1] = 0;
 				aI_razr = (aI_razr_dt[0] + aI_razr_dt[1])/2;
+				aI_zar_dt[0] = aI_zar_dt[1] = 0;
 				aI_zar = 0;	
 			}																																																		
 			break;
