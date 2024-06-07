@@ -120,7 +120,6 @@ volatile union uBytes64 Reciev_CanAB_All[nMUKBE][nFrameABCAN];						// Теле�
 extern volatile unsigned char mCount5Main, mCountSecMain;			// Счётчик 5 мин для измерения температуры АБ
 extern volatile unsigned char mCount5, mCountSec, bPauza5m;		// Счётчик 5 мин для паузы, флаг начала счёта
 extern volatile unsigned char sCount20, bPauza20;							// Счётчик 20 сек для задержки повтора 3 раза алгоритма заряда, флаг начала счёта
-//extern volatile unsigned char bOneSec;												// sCount5,  bPauza5, Счётчик 5 сек, флаг начала счёта, флаг 1 сек
 extern volatile unsigned char bTimeOutCmd;										// Флаг Время ожидания ответа результата от БЭ команды 
 
 extern unsigned char set100ms, yes100ms;

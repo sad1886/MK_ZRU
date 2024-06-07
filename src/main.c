@@ -73,7 +73,7 @@ volatile float	curW_zar,																						// Текущ заряд НВАБ	
 volatile float	P = 0,																							// среднее значение ДД 
 								dP = 0,																							// Разница максимального и минимального давления ДД
 								T = 0,																							// среднее значение ДТ 
- 								Uab = 10, Uab_old,																	// значение напряжения АБ от БЭ
+ 								Uab = 0, Uab_old = 0,																	// значение напряжения АБ от БЭ
 								UsrAk = -0.7,																				// среднее значение напряжения АЭ
 								dUak = 0,																						// Разница напряжений макс и мин значений из 72 АК, В, было[1] максимальное отклонение напряжения АЭ ΔUрез
 								Umin_ak = -0.7,																			// минимальное значение напряжения АЭ
@@ -235,7 +235,6 @@ unsigned char bUstavkiBCU;
 //--------------------------- Time переменные ---------------------------------------------------------------------------
 volatile unsigned char bTimeOutCmd;																// Флаг Время ожидания ответа результата от БЭ команды 
 volatile unsigned char bOneSec;																		// Флаг 1 секунда
-volatile unsigned char bPauza5, bPauza20, bPauza5m;								// Флаги включения пауз 5 сек, 20 сек, 5 мин
 volatile unsigned char nSutok;																		// Число суток с начала счёта часов в ТВЦ при разряде РС
 unsigned char	secUart1, secUart2, NoWrkUart1;												// Счётчик секунд Uart1, флаг достижения двух секунд
 unsigned char	secTimeOutCmd;
@@ -245,7 +244,7 @@ unsigned char	secCAN_err;
 unsigned char EndTVC = 0; 																				// Флаг того, что начался процесс окончания ТВЦ (по команде или по окончанию алгоритма)
 unsigned char bPauza, bPauza_R, bPauza_TVC,
 							bCount_2h;																					// Флаг общей паузы, флаг - ждать 2 часа в ТВЦ
-int sCount, sCountTVC, sCount_R, sCount_2h;												// Счётчик секунд общей паузы, Счётчик секунд для 2-х часов ожидания в ТВЦ (sCount_2h стала вспомогательной и используется в разных местах) 
+int sCount, sCountTVC, sCount_R;												// Счётчик секунд общей паузы, Счётчик секунд для 2-х часов ожидания в ТВЦ (sCount_2h стала вспомогательной и используется в разных местах) 
 int LimsCount, LimsCountTVC, LimsCount_R;													// Предельное (конечное) значение для счётчика секунд общей паузы
 
 //........... T V C ...........
@@ -254,10 +253,10 @@ volatile unsigned char  bFlag,
 												ETVC; //этап ТВЦ, который будем восстанавливать, получив команду ВКЛ ТЕСТ
 int tstatTVC;																											// Текущее время от начала этапа 
 
-float calc_dt = (float)dt5/(60*60); 															//дельта времени, необходимая для расчета W и C, может меняться в зависимости от паузы между измерениями, по умолчанию соответствует дельте в 5 секунд
+//float calc_dt = (float)dt5/(60*60); 															//дельта времени, необходимая для расчета W и C, может меняться в зависимости от паузы между измерениями, по умолчанию соответствует дельте в 5 секунд
 float calc_dt1 = (float)dt1/(60*60);															// 1 сек
-float calc_dt5 = (float)dt5/(60*60);															// 5 сек, типовое значение дельты времени 
-float calc_dt20 = (float)dt20/(60*60);														// 20 сек, редкое значение дельты времени
+//float calc_dt5 = (float)dt5/(60*60);															// 5 сек, типовое значение дельты времени 
+//float calc_dt20 = (float)dt20/(60*60);														// 20 сек, редкое значение дельты времени
 
 
 //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
@@ -786,19 +785,23 @@ void Init_Param(void)	//
 
 //-------------Расчёт C W--------------------------------------------------------------------------------------------------
 void Calculation (void)
-{
-	C_raz += ((aI_razrOld + aI_razr)/2)*calc_dt;																// Расчёт	C = C + Iab*dt, 		
-	W_raz += ((aI_razrOld + aI_razr)/2)*calc_dt*((Uab_old + Uab)/2);						// Расчёт W = W + Iab*dt*Uab
-	Uab_old = Uab;	aI_razrOld = aI_razr;
+{	
+	C_raz += ((aI_razrOld + aI_razr)/2)*calc_dt1;																// Расчёт	C = C + Iab*dt, 		
+	if(mode == CAN_not_working) //если нет CAN
+		W_raz += ((aI_razrOld + aI_razr)/2)*((vU_zru_Old + vU_zru)/2)*calc_dt1;			// Расчёт W по напряжению, измеряемому в ЗРУ
+	else //если есть CAN
+		W_raz += ((aI_razrOld + aI_razr)/2)*((Uab_old + Uab)/2)*calc_dt1;						// Расчёт W по напряжению, измеряемому в БЭ
+		
+	Uab_old = Uab; vU_zru_Old = vU_zru;	aI_razrOld = aI_razr;
 }
 
-//-------------Расчёт C W при потерея обоих линий CAN--------------------------------------------------------------------------------------------------
-void Calculation_noCAN (void)
-{
-	C_raz += ((aI_razrOld + aI_razr)/2)*calc_dt;																// Расчёт	C = C + Iab*dt, 		dt=5сек
-	W_raz += ((aI_razrOld + aI_razr)/2)*calc_dt*((vU_zru_Old + vU_zru)/2);			// Расчёт W = W + Iab*dt*Uab
-	vU_zru_Old = vU_zru;		aI_razrOld = aI_razr;
-}
+////-------------Расчёт C W при потерея обоих линий CAN--------------------------------------------------------------------------------------------------
+//void Calculation_noCAN (void)
+//{
+//	C_raz += ((aI_razrOld + aI_razr)/2)*calc_dt;																// Расчёт	C = C + Iab*dt, 		dt=5сек
+//	W_raz += ((aI_razrOld + aI_razr)/2)*calc_dt*((vU_zru_Old + vU_zru)/2);			// Расчёт W = W + Iab*dt*Uab
+//	vU_zru_Old = vU_zru;		aI_razrOld = aI_razr;
+//}
 
 //-------------------------------------------------------------------------------------------------------------------------
 //функция подготавливает паузу LimsCount bPauza 
@@ -945,12 +948,7 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 		pVkl_Test_Razrayd();
 		pOtkl_Zapr_Razrayd();
 		stat4[iMUK_ZRU] &= ~br2;																			
-		sCount_2h = 0; 																											// подготавливаем переменную, с помощью которой будем ждать 20 секунд, прежде чем контролировать ток, переменная увеличивается раз в секунду
-		PauseOn(1);
-		// Так как начался разряд, нужно уже начать Calculation, поэтому 
-		calc_dt = calc_dt1; //дельта времени соответствует 1 секундам	
-		Uab_old = Uab;	aI_razrOld = aI_razr; //фиксируем текущие U и I
-		//
+		PauseOn(20);
 		StepAlgortmTest = st_t_2_03;																
 		break;
 	
@@ -958,29 +956,17 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 	case st_t_2_03:
 		
 		if (!bPauza) {
-			Calculation();																										// После разрешения разряда и паузы нужно посчитать
-			
-			if (sCount_2h >= 20) //если прошло достаточно времени
+			if	(aI_razr > aIporog)	
 			{
-				if	(aI_razr > aIporog)	
-				{
-					stat2[iMUK_ZRU] &= ~errNoVklRazr;															// Собщение "Не включился разряд"=0																											
-					StepAlgortmTest = st_t_2_04;	
-					
-					PauseOn(1);
-					calc_dt = calc_dt1; 						
-				}
-				else	{						
-					stat2[iMUK_ZRU] |= errNoVklRazr;															// Собщение "Не включился разряд"=1
-					StepAlgortmTest = st_t_2_02;																		
-				}																						
-			}
-			else  //если же ток еще рано измерять
-			{
+				stat2[iMUK_ZRU] &= ~errNoVklRazr;															// Собщение "Не включился разряд"=0																											
+				StepAlgortmTest = st_t_2_04;	
+				
 				PauseOn(1);
-				calc_dt = calc_dt1;
-				StepAlgortmTest = st_t_2_03; 																				// зацикливаемся на Calculation и ожидание sCount_2h >= 20
 			}
+			else	{						
+				stat2[iMUK_ZRU] |= errNoVklRazr;															// Собщение "Не включился разряд"=1
+				StepAlgortmTest = st_t_2_02;																		
+			}																						
 		}			
 		break;
 	 
@@ -1003,12 +989,6 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 				PauseOn(20);
 				StepAlgortmTest = st_t_2_05;																				 
 			}			 
-			else	{																														
-				Calculation();
-				PauseOn(1);
-				calc_dt = calc_dt1;
-				StepAlgortmTest = st_t_2_04;
-			}	
 		}	
 		break;
 		
@@ -1059,12 +1039,7 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 			pVkl_Test_Razrayd();
 			pOtkl_Zapr_Razrayd();
 			stat4[iMUK_ZRU] &= ~br4;																			// 
-			sCount_2h = 0; 																										//подготавливаем переменную, с помощью которой будем ждать 20 секунд, прежде чем контролировать ток, переменная увеличивается раз в секунду
-			PauseOn(1);
-			// Так как начался разряд, нужно уже начать Calculation, поэтому 
-			calc_dt = calc_dt1; //дельта времени соответствует 1 секундам	
-			Uab_old = Uab;	aI_razrOld = aI_razr; //фиксируем текущие U и I
-			//								
+			PauseOn(20);						
 			StepAlgortmTest = st_t_2_08;
 		}
 		else	
@@ -1074,27 +1049,15 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 	// .......... Ожидание включения разряда ................................................................................11
 	case st_t_2_08:
 		
-		if (!bPauza) {
-			Calculation();																										// После разрешения разряда и паузы нужно посчитать
+		if (!bPauza) {		
+			if	(aI_razr > aIporog)	
+				stat2[iMUK_ZRU] &= ~errNoVklRazr;																// Собщение "Не включился разряд"=0				
+			else							
+				stat2[iMUK_ZRU] |= errNoVklRazr;																// Собщение "Не включился разряд"=1	
 			
-			if (sCount_2h >= 20) //если прошло достаточно времени
-			{
-				if	(aI_razr > aIporog)	
-					stat2[iMUK_ZRU] &= ~errNoVklRazr;																// Собщение "Не включился разряд"=0				
-				else							
-					stat2[iMUK_ZRU] |= errNoVklRazr;																// Собщение "Не включился разряд"=1	
-				
-				StepAlgortmTest = st_t_2_09;
-				
-				PauseOn(1);
-				calc_dt = calc_dt1; 																							//дельта времени соответствует 5 секундам					
-			}
-			else  //если же ток еще рано измерять
-			{
-				PauseOn(1);
-				calc_dt = calc_dt1;
-				StepAlgortmTest = st_t_2_08; 																//зацикливаемся на Calculation и ожидание sCount_2h >= 20
-			}
+			StepAlgortmTest = st_t_2_09;
+			
+			PauseOn(1);
 		}			
 		break;	
 	
@@ -1118,12 +1081,6 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 				PauseOn(20);
 				StepAlgortmTest = st_t_2_10;																// Переход запрет разряда StepNext=bOtkl_Razrayd;
 			}			 
-			else	{																														
-				Calculation();
-				PauseOn(1);
-				calc_dt = calc_dt1;
-				StepAlgortmTest = st_t_2_09;
-			}	
 		}	
 		break;	
 	
@@ -1466,12 +1423,7 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 		pVkl_Test_Razrayd();
 		pOtkl_Zapr_Razrayd();
 		stat5[iMUK_ZRU] &= ~br9;																			 
-		sCount_2h = 0;	//подготавливаем переменную, с помощью которой будем ждать 20 секунд, прежде чем контролировать ток, переменная увеличивается раз в секунду
-		PauseOn(1);
-		// Так как начался разряд, нужно уже начать Calculation, поэтому 
-		calc_dt = calc_dt1; //дельта времени 
-		Uab_old = Uab;	aI_razrOld = aI_razr; //фиксируем текущие U и I
-		//
+		PauseOn(20);
 		StepAlgortmTest = st_t_8_03;																
 		break;
 
@@ -1479,25 +1431,13 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 	case st_t_8_03:
 		
 		if (!bPauza) {
-			Calculation();																										// После разрешения разряда и паузы нужно посчитать
-			
-			if (sCount_2h >= 20) //если прошло достаточно времени
-			{
-				if	(aI_razr > aIporog)	
-					stat2[iMUK_ZRU] &= ~errNoVklRazr;																// Собщение "Не включился разряд"=0					
-				else						
-					stat2[iMUK_ZRU] |= errNoVklRazr;																// Собщение "Не включился разряд"=1	
+			if	(aI_razr > aIporog)	
+				stat2[iMUK_ZRU] &= ~errNoVklRazr;																// Собщение "Не включился разряд"=0					
+			else						
+				stat2[iMUK_ZRU] |= errNoVklRazr;																// Собщение "Не включился разряд"=1	
 
-				StepAlgortmTest = st_t_8_04;
-				PauseOn(1);
-				calc_dt = calc_dt1; 																									
-			}
-			else  //если же ток еще рано измерять
-			{
-				PauseOn(1);
-				calc_dt = calc_dt1;
-				StepAlgortmTest = st_t_8_03; 																//зацикливаемся на Calculation и ожидание sCount_2h >= 20
-			}
+			StepAlgortmTest = st_t_8_04;
+			PauseOn(1);																								
 		}			
 		break;
 	 
@@ -1521,12 +1461,6 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 				PauseOn(20);
 				StepAlgortmTest = st_t_8_05;																
 			}			 
-			else	{																														
-				Calculation();
-				PauseOn(1);
-				calc_dt = calc_dt1;
-				StepAlgortmTest = st_t_8_04;
-			}	
 		}	
 		break;
 		
@@ -1580,12 +1514,7 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 			pVkl_Test_Razrayd();
 			pOtkl_Zapr_Razrayd();
 			stat5[iMUK_ZRU] &= ~br11;																			 
-			sCount_2h = 0; 	//подготавливаем переменную, с помощью которой будем ждать 20 секунд, прежде чем контролировать ток, переменная увеличивается раз в секунду
-			PauseOn(1);
-			// Так как начался разряд, нужно уже начать Calculation, поэтому 
-			calc_dt = calc_dt1; //дельта времени соответствует 1 секундам	
-			Uab_old = Uab;	aI_razrOld = aI_razr; //фиксируем текущие U и I
-			//
+			PauseOn(20);
 			StepAlgortmTest = st_t_8_08;				
 		}
 		else	{
@@ -1598,26 +1527,14 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 	case st_t_8_08:
 		
 		if (!bPauza) {
-			Calculation();																										// После разрешения разряда и паузы нужно посчитать
+			if	(aI_razr > aIporog)	
+				stat2[iMUK_ZRU] &= ~errNoVklRazr;																// Собщение "Не включился разряд"=0				
+			else							
+				stat2[iMUK_ZRU] |= errNoVklRazr;																// Собщение "Не включился разряд"=1
 			
-			if (sCount_2h >= 20) //если прошло достаточно времени
-			{
-				if	(aI_razr > aIporog)	
-					stat2[iMUK_ZRU] &= ~errNoVklRazr;																// Собщение "Не включился разряд"=0				
-				else							
-					stat2[iMUK_ZRU] |= errNoVklRazr;																// Собщение "Не включился разряд"=1
-				
-				StepAlgortmTest = st_t_8_09;
-				
-				PauseOn(1);
-				calc_dt = calc_dt1; 																							
-			}
-			else  //если же ток еще рано измерять
-			{
-				PauseOn(1);
-				calc_dt = calc_dt1;
-				StepAlgortmTest = st_t_8_08; 																//зацикливаемся на Calculation и ожидание sCount_2h >= 20
-			}
+			StepAlgortmTest = st_t_8_09;
+			
+			PauseOn(1);
 		}			
 		break;	
 	
@@ -1641,11 +1558,6 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 				PauseOn(20);
 				StepAlgortmTest = st_t_8_10;																
 			}			 
-			else	{																														
-				Calculation();
-				PauseOn(1);
-				StepAlgortmTest = st_t_8_09;
-			}	
 		}	
 		break;	
 	
@@ -2767,8 +2679,6 @@ void Razryd_NVAB (void)													/* _Р_А_З_Р_Я_Д___Н_В_А_Б_ */
 			else											 
 				stat3[iMUK_ZRU] &= ~errNoOgrTokRazr;		// Собщение "Не ограничен ток разряда" = 0
 			LimsCount_R = vsCount1;		sCount_R=0;	bPauza_R=1;												
-			calc_dt = calc_dt1; //дельта времени соответствует 1 секундам
-			Uab_old = Uab;		aI_razrOld = aI_razr;
 			StepAlgortmRazr = st_r_2;																		// Переход на разряд с подсчётом C и W
 		}
 		break;
@@ -2776,7 +2686,6 @@ void Razryd_NVAB (void)													/* _Р_А_З_Р_Я_Д___Н_В_А_Б_ */
 	// .......... Р_а_з_р_я_д АБ, контроль напряжения АБ ....................................................................
 	case st_r_2:
 		if (!bPauza_R) {																										// Пауза 			
-			Calculation();
 			if	((Uab <= 72)||(Umin_ak <= 0.2))	{	
 				StepAlgortmRazr = st_r_3;
 			}	
@@ -2787,7 +2696,6 @@ void Razryd_NVAB (void)													/* _Р_А_З_Р_Я_Д___Н_В_А_Б_ */
 					if (mode_Razryad)	 stat3[iMUK_ZRU] &= ~errPrevDopustT;			//снимаем сообщение об аварии только если мы находились в режиме разряд				
 				}
 				LimsCount_R = vsCount1; 	 sCount_R=0;	bPauza_R=1;												
-				calc_dt = calc_dt1; //дельта времени соответствует 1 секундам
 				StepAlgortmRazr = st_r_2; //зацикливаемся
 			}	
 		}	
@@ -2871,8 +2779,6 @@ void Razryd_NVAB_noCAN (void)													/* _Р_А_З_Р_Я_Д___Н_В_А_Б_ �
 		else											 {stat3[iMUK_ZRU] &= ~errNoOgrTokRazr;
 		}	
 		LimsCount_R = vsCount5; 	 sCount_R=0;	bPauza_R=1;												/*Razr;*/
-		calc_dt = calc_dt5; //дельта времени соответствует 5 секундам		
-		vU_zru_Old = vU_zru;		aI_razrOld = aI_razr;
 		StepAlgortmRazr = st_r_8;																		// Переход на контроль ЗРП с подсчётом C и W
 		break;
 
@@ -2884,7 +2790,6 @@ void Razryd_NVAB_noCAN (void)													/* _Р_А_З_Р_Я_Д___Н_В_А_Б_ �
 				StepAlgortmRazr = st_r_3;
 			}	
 			else	{																														// ((P < 3)||(U <= 76))
-				Calculation_noCAN();
 				StepAlgortmRazr = st_r_7;														// По сути возвращаемся в начало алгоритма
 			}	
 		}	
@@ -2919,6 +2824,8 @@ void Razryd_NVAB_noCAN (void)													/* _Р_А_З_Р_Я_Д___Н_В_А_Б_ �
 void OneSecAdd (void)													/* Добавить секунду */
 {	int i;
 	AddSec = 0;		bOneSec = 1;
+	
+	Calculation();	//производим расчет W и C раз в секунду, независимо от режимов и алгоритмов
 	
 	//......................................................................
 	if (cntReadyWrk < PauseReadyWrk) cntReadyWrk++;
@@ -3009,8 +2916,6 @@ void OneSecAdd (void)													/* Добавить секунду */
 	}	
 	//~проводные запреты	
 		
-	//......................................................................
-	sCount_2h++;	
 
 	//......................................................................
 	if (bPauza_TVC)	{	sCountTVC++;
@@ -3066,7 +2971,6 @@ void Var_init()
 	lngPack1 = Npack_Cmd-1;		lngPack2 = Npack_Cmd-1;											// Длина пакета RS485 максимальная
 
 	bPauza = 0;
-	bPauza20 = 0;																													// Флаг пауза 20 сек
 	bOneSec = 0;																													// Флаг для чтения параметров АБ в БЭ через 1 сек
 	
 	EndTVC = 0; 																														// Флаг начала процесса окончания ТВЦ
@@ -3091,6 +2995,9 @@ void Var_init()
 	aI_razr = aI_razrOld = aI_zar = 0;
 	vU_zru = vU_zru_Old = 0; //напряжение
 	dTemp1_zru = dTemp2_zru = 0; //температура
+	
+	//параметры, измеряемые БЭ
+	Uab = Uab_old = 0;
 	
 	//проводные запреты
 	cntZarProv = cntRazrProv = 0; //счетчики секунд проводных линий
@@ -3324,8 +3231,7 @@ int main(void)
 
 	mode = START;																											// Начальрый режим
 	cntReadyWrk = 0;																											// Счётчик задержки 3 секунды
-	bPauza5 = 1;	bOneSec = 0;
-	calc_dt = calc_dt1; 																									//по умолчанию дельта времени для расчета W и С будет соответствовать 1 секундам
+	bOneSec = 0;
 	
 	MakePack2_5_8_10();
 	MakePack3();	InitPack4();

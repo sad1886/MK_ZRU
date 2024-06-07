@@ -92,7 +92,7 @@ extern volatile unsigned char bTimeOutCmd;																// Флаг Время
 extern volatile float	time_Razr;
 
 extern unsigned char bPauza, bPauza_R;																		// Флаг общей паузы
-extern int sCount, sCount_R, sCount_2h;																		// Счётчик секунд общей паузы
+extern int sCount, sCount_R;																		// Счётчик секунд общей паузы
 extern int LimsCount, LimsCount_R;																				// Предельное (конечное) значение для счётчика секунд общей паузы
 
 unsigned char	secST;																											// Счётчик секунд
