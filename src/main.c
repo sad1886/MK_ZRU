@@ -2331,26 +2331,24 @@ void MakePack254(void)	// Заполнение пакета 254
 //-------------------------------------------------------------------------------------------------------------------------
 void TVC_restore(void)	// Восстановление ЭТВЦ
 {		
-	if((ETVC == 0)||(ETVC > 9)) //если приняли некорректное значение ЭТВЦ
+	if((ETVC <= 0)||(ETVC > 9)) //если приняли некорректное значение ЭТВЦ
 		return; //просто выходим, даже не меняя режима работы
 	
-	if (ETVC)	{ 
-		pOtkl_KOMP();																												// "ВКЛ КОМП"	«ВКЛ КОМП» = 1,
-		pVkl_Zapr_Zarayd();																									// «ЗАПРЕТ ЗАРЯД» = 1, 
-		pOtkl_Test_Zarayd();																								// «ОТКЛ ТЕСТ ЗАРЯД»,
-		pVkl_Zapr_Razrayd();																								// «ЗАПРЕТ РАЗРЯД» = 1,
-		pOtkl_Test_Razrayd();																								// «ОТКЛ ТЕСТ РАЗРЯД»,
-		
-		//сбрасываем все биты, участвующие в синхронизации
-		stat4[iMUK_ZRU] = 0;	
-		stat5[iMUK_ZRU] = 0;
-		
-		StepAlgortmTest = st_t_InitTest;
-		switch (ETVC)	{						
-//		case 	1:	StepAlgortm = bVkl_Tst_Zarayd;	
-//							break;
-//		case	2:	StepAlgortm = bVkl_Test_Razr;		
-//							break;
+	pOtkl_KOMP();																												// "ВКЛ КОМП"	«ВКЛ КОМП» = 1,
+	pVkl_Zapr_Zarayd();																									// «ЗАПРЕТ ЗАРЯД» = 1, 
+	pOtkl_Test_Zarayd();																								// «ОТКЛ ТЕСТ ЗАРЯД»,
+	pVkl_Zapr_Razrayd();																								// «ЗАПРЕТ РАЗРЯД» = 1,
+	pOtkl_Test_Razrayd();																								// «ОТКЛ ТЕСТ РАЗРЯД»,
+	
+	//сбрасываем все биты, участвующие в синхронизации
+	stat4[iMUK_ZRU] = 0;	
+	stat5[iMUK_ZRU] = 0;
+	
+	switch (ETVC)	{						
+		case 	1:	StepAlgortmTest = st_t_InitTest;	
+							break;
+		case	2:	StepAlgortmTest = st_t_2_01;		
+							break;
 //		case 	3:	
 //							// Следующий этап выбирается исходя из необходимости: либо происходят наземные испытания, либо полет
 //							#ifdef HOURS2 
@@ -2374,14 +2372,16 @@ void TVC_restore(void)	// Восстановление ЭТВЦ
 //							break;
 //		case	9:	StepAlgortm = bVkl_Tst_Zarayd9;
 //							break;
-		}
-		mode = TEST; //теперь будем находится в режиме ТЕСТ
-		stat1[iMUK_ZRU] &= ~bMain; //а не в основном
-		stat1[iMUK_ZRU] |= bTest; 
-		
-		//сброс всех аварийных сообщений
-		ResetAvars();
+		default:	StepAlgortmTest = st_t_InitTest;	
+							break;
+			
 	}
+	mode = TEST; //теперь будем находится в режиме ТЕСТ
+	stat1[iMUK_ZRU] &= ~bMain; //а не в основном
+	stat1[iMUK_ZRU] |= bTest; 
+	
+	//сброс всех аварийных сообщений
+	ResetAvars();
 }
 
 
@@ -3378,8 +3378,8 @@ int main(void)
 			
 			case initTEST:																										// Запуск подпрограммы ТВЦ АБ (определение ёмкости АБ) 
 				TVC_restore(); //получив команду ВКЛ ТЕСТ, мы теперь всегда принимаем ЭТВЦ. Эта функция выбирает, с какого этапа начнется/продолжится тестирование	
-				
-				
+				break;
+								
 			case TEST:																												// Запуск подпрограммы ТВЦ АБ (определение ёмкости АБ) 
 				//if (!bPauza_TVC) //непонятно, зачем нужно
 					Test_NVAB();
