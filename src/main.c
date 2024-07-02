@@ -2662,76 +2662,75 @@ void Zaryd_NVAB_noCAN (void)											/* _З_А_Р_Я_Д___Н_В_А_Б_ по п
 void Razryd_NVAB (void)													/* _Р_А_З_Р_Я_Д___Н_В_А_Б_ */
 {	
 	switch (StepAlgortmRazr)																							// Переключатель состояний алгоритма разряда
-	{
+	{		
 	// .......... Инициализация разряда .....................................................................................
 	case st_InitRazryad:
+		if	((Uab <= 72)||(Umin_ak <= 0.2))		
+			StepAlgortmRazr = st_r_4;
+		else 
+			StepAlgortmRazr = st_r_1;
+		break;
+
+	case st_r_1:
 		pOtkl_Zapr_Razrayd();
 		LimsCount_R = vsCount20;	 sCount_R=0;	bPauza_R=1;								// Включене паузы 20 сек
-		StepAlgortmRazr = st_r_1;
+		StepAlgortmRazr = st_r_2;
 		break;
-	
-	// .......... Проврка ограничения тока разряда ..........................................................................
-	case st_r_1:
-	if (!bPauza_R) {	
-			stat2[iMUK_ZRU] &= ~errNoOtklRazr; 																// Не отключился разряд АБ = 0
-			if (aI_razr > aIrazr_ogrn) 
+		
+	case st_r_2:
+		if (!bPauza_R) {																									// Пауза 			
+			if (aI_razr >= aIrazr_ogrn) 
 				stat3[iMUK_ZRU] |= errNoOgrTokRazr;			// Собщение "Не ограничен ток разряда" = 1
 			else											 
-				stat3[iMUK_ZRU] &= ~errNoOgrTokRazr;		// Собщение "Не ограничен ток разряда" = 0
-			LimsCount_R = vsCount1;		sCount_R=0;	bPauza_R=1;												
-			StepAlgortmRazr = st_r_2;																		// Переход на разряд с подсчётом C и W
-		}
-		break;
-	
-	// .......... Р_а_з_р_я_д АБ, контроль напряжения АБ ....................................................................
-	case st_r_2:
-		if (!bPauza_R) {																										// Пауза 			
-			if	((Uab <= 72)||(Umin_ak <= 0.2))	{	
-				StepAlgortmRazr = st_r_3;
-			}	
-			else {																																	
-				if	(T >= 50)	
-	     			stat3[iMUK_ZRU] |=  errPrevDopustT;								// "Превышение допустимой температуры АБ" - процесс разряда
-				else	{				
-					if (mode_Razryad)	 stat3[iMUK_ZRU] &= ~errPrevDopustT;			//снимаем сообщение об аварии только если мы находились в режиме разряд				
-				}
-				LimsCount_R = vsCount1; 	 sCount_R=0;	bPauza_R=1;												
-				StepAlgortmRazr = st_r_2; //зацикливаемся
-			}	
+				stat3[iMUK_ZRU] &= ~errNoOgrTokRazr;		// Собщение "Не ограничен ток разряда" = 0		
+			
+			if	(T >= 50)	
+					stat3[iMUK_ZRU] |=  errPrevDopustT;								// "Превышение допустимой температуры АБ" - процесс разряда
+			else	{				
+				if (mode_Razryad)	stat3[iMUK_ZRU] &= ~errPrevDopustT;			//снимаем сообщение об аварии только если мы находились в режиме разряд				
+			}
+			
+			LimsCount_R = vsCount1; 	 sCount_R=0;	bPauza_R=1;
+			StepAlgortmRazr = st_r_3;
 		}	
-		break;
-
-	// .......... Отключаем разряд ..........................................................................................
-	case st_r_3:		
-	  pVkl_Zapr_Razrayd();																								// Запрет РАЗРЯДА = 1
-		LimsCount_R = vsCount20;	 sCount_R=0;	bPauza_R=1;									// Сброс счётчика , включене паузы 20 сек
-		StepAlgortmRazr = st_r_4;
-		break;		
-		
-	// .......... Проврка отключения тока разряда ..........................................................................
+		break;	
+	
+	case st_r_3:
+		if (!bPauza_R) {
+			if ((Uab <= 72)||(Umin_ak <= 0.2))		
+				StepAlgortmRazr = st_r_4;			
+			else 
+				StepAlgortmRazr = st_r_2;			
+		}	
+		break;	
+	
 	case st_r_4:
-		
-		if (!bPauza_R) {
-			if (aI_razr > aIporog) stat2[iMUK_ZRU] |= errNoOtklRazr;					//
-//			else									 stat2[iMUK_ZRU] &= ~errNoOtklRazr;
-			StepAlgortmRazr = st_r_5;															// Переход на ожидание подъёма напряжения АБ до 80В
-			LimsCount_R = vsCount20;	 sCount_R=0;	bPauza_R=1;								// Сброс счётчика , включене паузы 20 сек
-		}	
-		break;		
-
-	// .......... Проверка роста напряжения при запрете разряда ............................................................
-	case st_r_5:
-		
-		if (!bPauza_R) {
-			if	(Uab >= 88)	{																									// Напряжение АБ достигло 88В
-				StepAlgortmRazr = st_InitRazryad;																	// Переход на начало алгоритма
-			}	
-			else	{																														//
-				StepAlgortmRazr = st_r_3;																// Переход на запрт разряда
-			}		
-		}
-		break;
+		pVkl_Zapr_Razrayd();
+		LimsCount_R = vsCount20;	 sCount_R=0;	bPauza_R=1;								// Включене паузы 20 сек
+		StepAlgortmRazr = st_r_5;
+		break;	
 	
+	case st_r_5:
+		if (!bPauza_R) {
+			if (aI_razr > aIporog) 
+				stat2[iMUK_ZRU] |= errNoOtklRazr;
+			else
+				stat2[iMUK_ZRU] &= ~errNoOtklRazr;
+			
+			LimsCount_R = vsCount20;	 sCount_R=0;	bPauza_R=1;								// Включене паузы 20 сек
+			StepAlgortmRazr = st_r_6;
+		}	
+		break;
+
+	case st_r_6:
+		if (!bPauza_R) {
+			if (Uab >= 88)		
+				StepAlgortmRazr = st_r_1;			
+			else 
+				StepAlgortmRazr = st_r_4;			
+		}	
+		break;	
+		
 	default:
 		StepAlgortmRazr = st_InitRazryad;																			// Переход на начало алгоритма
 		break;
