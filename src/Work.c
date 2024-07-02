@@ -502,7 +502,7 @@ void PutParamADC (void)																																				// С 14.07.20
 					mode_Razryad = 0; //больше нет разряда								
 					mode_Zaryad = 1; //теперь у нас заряд
 					C_raz = 0;	W_raz = 0;
-				}	
+				}
 				// Получение значений Зарядного и Разрядного токов
 				if (aI_zar_dt[iadc-1]<0.5)	aI_zar_dt[iadc-1] = 0; //если значение ниже порога, то считаем ток нулевым
 				aI_zar = (aI_zar_dt[0] + aI_zar_dt[1])/2;

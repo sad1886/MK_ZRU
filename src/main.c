@@ -2479,7 +2479,7 @@ void Zaryd_NVAB (void)													/* _З_А_Р_Я_Д___Н_В_А_Б_ */
 
 	// .......... Проверка превышения допустимой температуры ................................................................
 	case st_z_6:																										
-		if	((mode_Zaryad)&&(T >= T_max)) 	{																
+		if	((aI_zar > 0.8)&&(T >= T_max)) 	{																
 			if	(P <= 0.8*Pu[iUst])	{																					
 				stat3[iMUK_ZRU] |= errPrevDopustT;															// "Превышение допустимой температуры НВАБ"=1
 				pVkl_Zapr_Zarayd ();																						// Запрет заряда=1
@@ -2528,7 +2528,7 @@ void Zaryd_NVAB (void)													/* _З_А_Р_Я_Д___Н_В_А_Б_ */
 			StepAlgortmZar =  st_z_10;
 		}	
 		else	{
-			if (mode_Razryad)	
+			if (aI_razr > 0.8)	
 				StepAlgortmZar = st_InitZarayd;		// Если мы находимся в разряде, то начинаем алгоритм заряда заново
 			else 
 				StepAlgortmZar = st_z_5;	// "Петля" - процесс заряда
@@ -2626,7 +2626,7 @@ void Zaryd_NVAB_noCAN (void)											/* _З_А_Р_Я_Д___Н_В_А_Б_ по п
 				StepAlgortmZar = st_z_7;															// След шаг алгоритма Ожидание включения запрета заряда
 		}
 		else	{																															// Не включился заряд.
-			if (mode_Razryad)		StepAlgortmZar = st_z_1;									// Выход из "Петли"
+			if (aI_razr > 0.8)		StepAlgortmZar = st_z_1;									// Выход из "Петли"
 			else	{							StepAlgortmZar = st_z_5;									// "Петля" - процесс заряда
 				PauseOn(20);
 			}
@@ -2687,7 +2687,7 @@ void Razryd_NVAB (void)													/* _Р_А_З_Р_Я_Д___Н_В_А_Б_ */
 			if	(T >= 50)	
 					stat3[iMUK_ZRU] |=  errPrevDopustT;								// "Превышение допустимой температуры АБ" - процесс разряда
 			else	{				
-				if (mode_Razryad)	stat3[iMUK_ZRU] &= ~errPrevDopustT;			//снимаем сообщение об аварии только если мы находились в режиме разряд				
+				if (aI_zar < 0.8)	stat3[iMUK_ZRU] &= ~errPrevDopustT;			//снимаем сообщение об аварии только если мы находились в режиме разряд				
 			}
 			
 			LimsCount_R = vsCount1; 	 sCount_R=0;	bPauza_R=1;
