@@ -2009,18 +2009,6 @@ void MakePack1(void)	// Заполнение пакета телем. данны
 }
 
 //-------------------------------------------------------------------------------------------------------------------------
-void InitPack1(void)	// Заполнение пакета телем. данными	
-{	int i;
-
-	for(i=4; i < lngPackRs1; i++)	{																					// nParams = 8
-		PackRs1[i] = 0;
-	}
-	checksumCalc = Crc16(PackRs1, lngPackRs1-2);													// Выисление контрольной суммы
-	*(PackRs1+lngPackRs1-1) =  checksumCalc;	
-	*(PackRs1+lngPackRs1-2) =  checksumCalc >> 8;													// Добавить контрольную сумму
-}
-
-//-------------------------------------------------------------------------------------------------------------------------
 void MakePack2_5_8_10(void)	// Заполнение пакетов-ответов, которые не содержат данные
 {
 	checksumCalc = Crc16(PackRs2, lngPackRs2-2);													// Выисление контрольной суммы
@@ -2113,17 +2101,6 @@ void MakePack4(void)	// Заполнение пакета Полной теле�
 	*(PackRs4+lngPackRs4-2) =  checksumCalc >> 8;													// Добавить контрольную сумму
 }
 
-//-------------------------------------------------------------------------------------------------------------------------
-void InitPack4(void)	// Заполнение пакета Полной телем. начальными данными
-{	
-	for(i=4; i < 76; i++)		{
-		PackRs4[i] = 0;																											//	Напряжение 1..72-ого НВА НВАБ БЭ
-	}
-
-	checksumCalc = Crc16(PackRs4, lngPackRs4-2);													// Выисление контрольной суммы
-	*(PackRs4+lngPackRs4-1) =  checksumCalc;	
-	*(PackRs4+lngPackRs4-2) =  checksumCalc >> 8;													// Добавить контрольную сумму
-}
 
 //-------------------------------------------------------------------------------------------------------------------------
 void ClearPack4(void)	// Заполнение пакета Полной телем. данными	
@@ -2951,12 +2928,13 @@ void Var_init()
 	iUst = 1;																															// Индекс текущей (2-й) уставки
 	iUst_mas[0] = iUst_mas[1] = iUst_mas[2] = 1; 													// уставки всех трех МК ЗРУ, участвующие в мажоритаре
 	
-	stat1[iMUK_ZRU] = bMain;																							// Статус и сообщения ЗРУ stat1[3] = {РС | ЗРУ | Подзаряд| ТВЦ |Основной режим |Заряд  |Разряд};
+	stat1[iMUK_ZRU] = 0;																									// Статус и сообщения ЗРУ stat1[3] = {РС | ЗРУ | Подзаряд| ТВЦ |Основной режим |Заряд  |Разряд};
 	stat2[iMUK_ZRU] = 0;																									// Сообщения ЗРУ 					stat2[3], stat3[3];
 	stat3[iMUK_ZRU] = 0;
 	stat4[iMUK_ZRU] = 0;
 	stat5[iMUK_ZRU] = 0;
 
+	DataOk = 0;
 
 	//при начале работы программы контроллер выставляет запрос на восстановление данных, и индивидуальный и общий (ведь достаточно, чтобы хотя бы в одном МК появился этот запрос)
 	bRestData = 1;																												// 1 - восстановить данные, 
@@ -3062,7 +3040,7 @@ void WrkCmd_1(void)
 								ETVC = (0xf0 & pack1[4]) >> 4;																// ЭТВЦ содержится в 5 байте принятого пакета команда
 							}
 							break;		
-						case gOtkl_Test: 			mode = Otkl_TEST;				break;								// 0x4 Откл_ТЕСТ
+						case gOtkl_Test: 			EndTVC = 0; mode = Otkl_TEST;				break;		// 0x4 Откл_ТЕСТ
 						case gOtkl_RS:	 			pOtkl_RS(0);						break;								// 0x5 ОТКЛ РС 	отключать разрядные сопротивления в БЭ mode = Otkl_RS;
 						case gVkl_Podzarayd:	if(DataOk)	mode = initPodzarayd;		break;		// 0x6 ВКЛ Подзаряд
 						case gOtkl_Podzarayd:	mode = Otkl_Podzarayd;	break;								// 0x7 ОТКЛ Подзаряд
@@ -3130,7 +3108,7 @@ void WrkCmd_2(void)
 								ETVC = (0xf0 & pack1[4]) >> 4;																// ЭТВЦ содержится в 5 байте принятого пакета команда
 							}
 							break;														
-						case gOtkl_Test: 			mode = Otkl_TEST;				break;								// 0x4 Откл_ТЕСТ
+						case gOtkl_Test: 			EndTVC = 0; mode = Otkl_TEST;				break;								// 0x4 Откл_ТЕСТ
 						case gOtkl_RS:	 			pOtkl_RS(0);						break;								// 0x5 ОТКЛ РС 	отключать разрядные сопротивления в БЭ mode = Otkl_RS;
 						case gVkl_Podzarayd:	if(DataOk)	mode = initPodzarayd;		break;		// 0x6 ВКЛ Подзаряд
 						case gOtkl_Podzarayd:	mode = Otkl_Podzarayd;	break;								// 0x7 ОТКЛ Подзаряд
@@ -3233,8 +3211,9 @@ int main(void)
 	bOneSec = 0;
 	
 	MakePack2_5_8_10();
-	MakePack3();	InitPack4();
-	InitPack1();	MakePack6();
+	ClearPack3();	ClearPack4();
+	MakePack1();	MakePack6();
+	MakePack7();	MakePack8();
 	MakePack254(); //пакет с версией прошивки заполняем один раз
 	
 	while (1)												
@@ -3253,14 +3232,13 @@ int main(void)
 			
 		//.....................................................................................................................
 		if (bOneSec)	{		bOneSec=0;																				// Раз в секунду
-			
-			if (!mode)	{	mode = START;	}																	// Переход в рабочий режим при старте программы
 			// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .	
 			if	((updateD1)&&(updateD2))	{																		// Получены все фрейимы пакета1 и пакета2
 				GetDataFromCan(); 																							// Забираем из пакетов нужную нам телеметрию
 				MakePack3();	MakePack4();																			// if ((!bReqBCU[0])&&(!bReqBCU[1]))	{	MakePack3();	MakePack4(); }
 				cnt_can=0;	updateD1=0;		updateD2=0;
 				if (mode == CAN_not_working)	{mode = START;}
+				if (mode == CAN_not_working_prep)	{mode = START;}
 				DataOk = 1;
 			}
 			// . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
@@ -3268,19 +3246,29 @@ int main(void)
 				if (cnt_can<4)	{	cnt_can++;	}
 				else	{																													// 5сек. нет связи по CAN
 					ClearPack3();		ClearPack4();
-					if ((mode != CAN_not_working)&&(mode != Vkl_ZRU))	{
-						DataOk = 0;		 																								// Установка "Нет данных телеметрии АБ"
-						if ((stat1[iMUK_ZRU] & bTest) || (stat1[iMUK_ZRU] & bPodzaryad))	{						
-							pOtkl_Test_Zarayd();		pOtkl_Test_Razrayd();								// "Откл_ТЕСТ ЗАР"  "Откл_ТЕСТ РАЗР" 
-							pOtkl_KOMP();																								// pVkl_Zapr_Zarayd ();		Запрет заряда=1			Откл_КОМП
-							stat1[iMUK_ZRU] &= ~bTest;		statTVC = 0;									// перестаем находиться в режиме "тест" 
-							stat1[iMUK_ZRU] &= ~bPodzaryad;															// перестаем находиться в режиме "подзаряд"
-						}
+					if ( ((mode != CAN_not_working) && (mode != CAN_not_working_prep)) && (mode != Vkl_ZRU) )	{
+						DataOk = 0;		 																								// Установка "Нет данных телеметрии АБ"												
+						stat1[iMUK_ZRU] &= ~bPodzaryad;																// перестаем находиться в режиме "подзаряд"
 						stat1[iMUK_ZRU] &= ~bPC;																			//сбрасываем состояние РС, ведь теперь мы его не знаем
-						stat1[iMUK_ZRU] |= bMain;																			//в любом случае переходим в "основной режим работы"
+
 						StepAlgortmZar = st_InitZarayd;			
 						StepAlgortmRazr = st_InitRazryad;
-						mode = CAN_not_working;																				// Сообщение в БЦУ "Ошибка приёма телеметрии АБ"
+						ResetAvars();			
+						
+						if (stat1[iMUK_ZRU] & bTest)	{		
+							pVkl_Zapr_Zarayd();																							// «ЗАПРЕТ ЗАРЯД»  = 1
+							pVkl_Zapr_Razrayd();																						// «ЗАПРЕТ РАЗРЯД» = 1
+							pOtkl_Test_Zarayd();																						// "Откл_ТЕСТ ЗАР" 
+							pOtkl_Test_Razrayd();																						// "Откл_ТЕСТ РАЗР" 							
+							
+							LimsCountTVC = vsCount20;		sCountTVC=0;		bPauza_TVC=1; 					// Подготовавливаем паузу 20 секунд	
+							mode = CAN_not_working_prep;
+						}
+						else
+						{
+							stat1[iMUK_ZRU] |= bMain;																			//в любом случае переходим в "основной режим работы"
+							mode = CAN_not_working;																							
+						}
 					}
 				}
 			}
@@ -3376,7 +3364,9 @@ int main(void)
 				break;
 			
 			case initTEST:																										// Запуск подпрограммы ТВЦ АБ (определение ёмкости АБ) 
-				TVC_restore(); //получив команду ВКЛ ТЕСТ, мы теперь всегда принимаем ЭТВЦ. Эта функция выбирает, с какого этапа начнется/продолжится тестирование	
+				if (!(stat1[iMUK_ZRU] & bPodzaryad)) { //если мы находимся в подзаряде, то остаемся в подзаряде
+					TVC_restore(); //получив команду ВКЛ ТЕСТ, мы теперь всегда принимаем ЭТВЦ. Эта функция выбирает, с какого этапа начнется/продолжится тестирование	
+				}
 				break;
 								
 			case TEST:																												// Запуск подпрограммы ТВЦ АБ (определение ёмкости АБ) 
@@ -3385,35 +3375,36 @@ int main(void)
 				break;
 			
 			case Otkl_TEST:	
-				if(EndTVC) //если процесс окончания ТВЦ уже был запущен
-				{					
-					if (!bPauza_TVC) 	{ // то контролируем окончание задержки, прежде чем перейти в основной режим					
-						pOtkl_KOMP();
-						stat1[iMUK_ZRU] &= ~bTest;		statTVC = 0; tstatTVC = 0;  //мы закончили тестирование
-						StepAlgortmTest = st_t_InitTest;
-						mode = START; //Начинаем обычный режим работы						
-						EndTVC = 0; // Процесс окончания ТВЦ закончен, мы переходим в режим mode = START;, можно сбросить этот флаг
-					}							
-				}
-				else //нужно запустить процесс окончания ТВЦ: выполнить команды и установить паузу ожидания исполнения этих команд
-				{
-					LimsCountTVC = vsCount20;		sCountTVC=0;		bPauza_TVC=1; 					// Подготовавливаем паузу 20 секунд			
-					
-					// По принятии команды Откл.Тест или при выходе из алгоритма тестирования вызываем эти функции
-					pVkl_Zapr_Zarayd();																							// «ЗАПРЕТ ЗАРЯД»  = 1
-					pVkl_Zapr_Razrayd();																						// «ЗАПРЕТ РАЗРЯД» = 1
-					pOtkl_Test_Zarayd();																						// "Откл_ТЕСТ ЗАР" 
-					pOtkl_Test_Razrayd();																						// "Откл_ТЕСТ РАЗР" 		
-					
-					pOtkl_RS(0); 
+				if ((stat1[iMUK_ZRU] & bTest)) {
+					if(EndTVC) //если процесс окончания ТВЦ уже был запущен
+					{					
+						if (!bPauza_TVC) 	{ // то контролируем окончание задержки, прежде чем перейти в основной режим					
+							pOtkl_KOMP();
+							stat1[iMUK_ZRU] &= ~bTest;		statTVC = 0; tstatTVC = 0;  //мы закончили тестирование
+							StepAlgortmTest = st_t_InitTest;
+							mode = START; //Начинаем обычный режим работы						
+							EndTVC = 0; // Процесс окончания ТВЦ закончен, мы переходим в режим mode = START;, можно сбросить этот флаг
+						}							
+					}
+					else //нужно запустить процесс окончания ТВЦ: выполнить команды и установить паузу ожидания исполнения этих команд
+					{
+						LimsCountTVC = vsCount20;		sCountTVC=0;		bPauza_TVC=1; 					// Подготовавливаем паузу 20 секунд			
+						
+						// По принятии команды Откл.Тест или при выходе из алгоритма тестирования вызываем эти функции
+						pVkl_Zapr_Zarayd();																							// «ЗАПРЕТ ЗАРЯД»  = 1
+						pVkl_Zapr_Razrayd();																						// «ЗАПРЕТ РАЗРЯД» = 1
+						pOtkl_Test_Zarayd();																						// "Откл_ТЕСТ ЗАР" 
+						pOtkl_Test_Razrayd();																						// "Откл_ТЕСТ РАЗР" 		
+						
+						pOtkl_RS(0); 
 
-					EndTVC = 1; //Устанавливаем флаг того, что процесс окончания ТВЦ запущен
+						EndTVC = 1; //Устанавливаем флаг того, что процесс окончания ТВЦ запущен
+					} 
 				}
 				break;
 
 			case initPodzarayd:																								// Запуск подпрограммы Подзаряд АБ
-				if (stat1[iMUK_ZRU] & bTest)				mode = TEST;
-				else	{
+				if (!(stat1[iMUK_ZRU] & bTest)) { //если мы находимся в тестировании, то остаемся в тестировании
 					if (!(stat1[iMUK_ZRU] & bPodzaryad))	{						
 						stat1[iMUK_ZRU] &= ~bMain;
 						stat1[iMUK_ZRU] |= bPodzaryad;	StepAlgortmPodzar = st_p_InitPodzar;
@@ -3428,12 +3419,23 @@ int main(void)
 				break;
 			
 			case Otkl_Podzarayd:																							// Останов подпрограммы Подзаряд АБ
-				stat1[iMUK_ZRU] &= ~bPodzaryad;
-				mode = START;
+				if (stat1[iMUK_ZRU] & bPodzaryad) { //если мы находимся в подзаряде, то остаемся в подзаряде
+					stat1[iMUK_ZRU] &= ~bPodzaryad;
+					mode = START;
+				}
 				break;
 			
 			case ADC_ERR:																											// Повтор чтения текущего канала АЦП
 				break;			
+
+			case CAN_not_working_prep:																							// Отказ CAN				
+				if (!bPauza_TVC) 	{ // то контролируем окончание задержки, прежде чем перейти в основной режим
+					pOtkl_KOMP();
+					stat1[iMUK_ZRU] &= ~bTest;		statTVC = 0;									// перестаем находиться в режиме "тест" 
+					stat1[iMUK_ZRU] |= bMain;
+					mode = CAN_not_working;	
+				}
+				break;						
 			
 			case CAN_not_working:																							// Отказ CAN				
 				bZarRazr = !bZarRazr;

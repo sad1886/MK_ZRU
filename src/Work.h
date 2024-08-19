@@ -17,7 +17,7 @@
 //----------- Версия прошивки ----------------------------------------------------
 #define ver1 7
 #define ver2 3
-#define ver3 5
+#define ver3 9
 
 #define WATCH_DOG //включение сторожевого таймера
 
@@ -27,9 +27,9 @@
 #define HW_ZRU01002
 
 //. . . . . . . . . . . . . . . . . . . . . .
-//#define nMUK_ZRU			nMUK1_ZRU							// МУК1 ЗРУ
+#define nMUK_ZRU			nMUK1_ZRU							// МУК1 ЗРУ
 //#define nMUK_ZRU			nMUK2_ZRU							// МУК2 ЗРУ
-#define nMUK_ZRU			nMUK3_ZRU							// МУК3 ЗРУ
+//#define nMUK_ZRU			nMUK3_ZRU							// МУК3 ЗРУ
 
 
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -230,6 +230,7 @@ enum PodzarSteps {st_p_InitPodzar = 0, st_p_1, st_p_2, st_p_3, st_p_4, st_p_5, s
 
 #define Otkl_RS							33							// Отключить разрядное сопротивления
 #define CAN_not_working			34							// Нет связи по CAN (отказ)
+#define CAN_not_working_prep 40							// Подготовительный режим к переходу к проводным алгоритмам									
 #define Vkl_Podzarayd				35							// Включить подзаряд АБ
 #define Otkl_Podzarayd			36							// Отключить подзаряд АБ
 #define Work								37							// Штатная работа: ЗАРЯД, РАЗЯД одновременно работают
