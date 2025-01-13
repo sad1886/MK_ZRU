@@ -19,7 +19,7 @@ extern int iMUK_ZRU;
 extern volatile unsigned char nBadAk[5];											// Номера отказавших аккумуляторов 
 extern unsigned char bReqBCU[2];															// Флаг: поступил запрос (команда) от БЦУ
 extern volatile unsigned char mode;														// Текущий режим работы контроллера, последний режим работы
-//extern volatile unsigned int Errors;													// Слово состояния ошибок аппаратуры
+
 extern volatile unsigned char iUst;														// Индекс текущей уставки 0..nUst-1
 extern volatile unsigned char iUst_mas[3];										// Значения уставок всех трех МК
 
@@ -46,7 +46,7 @@ uint32_t Prev_bitNotZar, Prev_bitNotRaz;											// предыдущее со�
 uint32_t ZaprZarProv, ZaprRazrProv; 													// состояние проводных запретов заряда, разряда. Формируется на основе "мигания" соответствующих проводных линий
 uint32_t cntZarProv, cntRazrProv; //счетчики секунд отсутствия мигания проводных линий запретов
 volatile unsigned char bNoWrkCAN;															// 0 - CAN работает, 1 - CAN не работает
-volatile unsigned char bRestData, vRestData;									// 1 - восстановить данные
+volatile unsigned char bRestData; //, vRestData;									// 1 - восстановить данные
 volatile unsigned char bRestData_indiv;												// запрос на восстановление данных, индивидуальный
 volatile unsigned char bSendStatus;														// послать байт состояния МУК ЗРУ
 
@@ -93,18 +93,6 @@ extern volatile unsigned short checksumCalc2, checksumIn2;
 //.......................................................................................................................
 extern unsigned char PackRs1[lngPackRs1];											// Пакет данных реальных значений измеренных параметров ЗРУ для RS485
 extern int indsData_p[nParams];																// Номера индексов в блоке данных пакета телеметрии
-extern float z_p[nParams];																		// z – цена (вес) младшего разряда;
-extern float x0_p[nParams];																		// x0 – сдвиг нуля
-
-
-//--------------------------- Преобразованные данные из БЭ ----------------------------------------------------------------
-union uBytesFloat16 fVdatch[nfVdatch];
-int 								iVdatch[niVdatch];
-
-union uBytesFloat16 fV_AB[nfV_AB];
-int 								iV_AB[niV_AB];
-
-volatile unsigned char err_BE;
 
 //--------------------------- CAN переменные ------------------------------------------------------------------------------
 volatile unsigned char bRunCmdCAN, CurrentCmd, CurrentDlc;		// Флаг отправки команды по CAN
@@ -116,6 +104,7 @@ volatile union uBytes64 Reciev_CanAB[nFrameABCAN];						// Телеметрия 
 
 volatile union uBytes64 Reciev_CanDatch_All[nMUKBE][nFrameDatchCAN];			// Телеметрия датчиков всех трех МК
 volatile union uBytes64 Reciev_CanAB_All[nMUKBE][nFrameABCAN];						// Телеметрия АБ всех трех МК
+
 //--------------------------- переменные времени ------------------------------------------------------------------------------
 extern volatile unsigned char mCount5Main, mCountSecMain;			// Счётчик 5 мин для измерения температуры АБ
 extern volatile unsigned char mCount5, mCountSec, bPauza5m;		// Счётчик 5 мин для паузы, флаг начала счёта
@@ -159,6 +148,8 @@ void pOtkl_Shim_ZRU (int bWait)																// "ОТКЛ ЗРУ"
 	MDR_PORTA->RXTX &= ~0x1;	Wait_(tWaitCmd);									// Отключить ЗРУ от СЭС 	25/PA0
 	MDR_PORTF->RXTX &= ~0x8;	Wait_(tWaitCmd);									// Отключить ЗРУ от АБ		22/PF3
 	stat1[iMUK_ZRU]	&= ~pwrZRU;
+	stat1[iMUK_ZRU]	&= ~bTest;
+	stat1[iMUK_ZRU]	&= ~bPodzaryad;
 	stat3[iMUK_ZRU] &= ~vklZRU;																	// ЗРУ отключено
 	set100ms = 1;
 	
@@ -485,7 +476,7 @@ void PutParamADC (void)																																				// С 14.07.20
 		case 1: //датчик тока 1
 		case 2: //датчик тока 2
 //debug			
-//			Uadc = 0.9;
+//			Uadc = 1.9;
 //~debug
 			if (Uadc < cUsm[iMUK_ZRU][iadc-1])																																	// З А Р Я Д
 			{	

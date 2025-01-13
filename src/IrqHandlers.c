@@ -76,30 +76,17 @@ extern volatile unsigned char * p_ParRs2;
 extern volatile unsigned short checksumCalc2, checksumIn2;
 
 //.......................................................................................................................
-extern unsigned char	secUart1, secUart2;																	// Счётчик секунд Uart1, флаг достижения двух секунд
-
-
 unsigned char bBadCmd2, bBadCmd1;
 extern unsigned char bReqBCU[2];																					// Флаг: поступил запрос (команда) от БЦУ
 
 //--------------------------- Time переменные ------------------------------------------------------------------------------
-extern volatile unsigned char mCount5Main, mCountSecMain;									// Счётчик 5 мин для измерения температуры АБ
-extern volatile unsigned char mCount5, mCountSec, bPauza5m;								// Счётчик 5 мин для паузы, флаг начала счёта
-extern volatile unsigned char sCount20, bPauza20;													// Счётчик 20 сек для задержки повтора 3 раза алгоритма заряда, флаг начала счёта
-extern volatile unsigned char sCount5, sWait5, bPauza5, bOneSec;					// Счётчик 5 сек, флаг начала счёта, флаг 1 сек
-
 extern volatile unsigned char bTimeOutCmd;																// Флаг Время ожидания ответа результата от БЭ команды 
-extern volatile float	time_Razr;
-
-extern unsigned char bPauza, bPauza_R;																		// Флаг общей паузы
-extern int sCount, sCount_R;																		// Счётчик секунд общей паузы
-extern int LimsCount, LimsCount_R;																				// Предельное (конечное) значение для счётчика секунд общей паузы
 
 unsigned char	secST;																											// Счётчик секунд
 unsigned char	secStat;																										// Счётчик секунд
-extern unsigned char	secUart1, NoWrkUart1;																	// Счётчик секунд Uart1, флаг достижения двух секунд
-extern unsigned char	secTimeOutCmd, AddSec;
 
+extern unsigned char	secUart1, secUart2;																	// Счётчик секунд Uart1, флаг достижения двух секунд
+extern unsigned char	secTimeOutCmd, AddSec;
 
 //--------------------------- Общие переменные ------------------------------------------------------------------------------
 extern int iMUK_ZRU;
@@ -111,7 +98,7 @@ extern unsigned char mk_be_osn[3];
 extern unsigned char mk_be_res[3];
 
 extern volatile unsigned char bSendStatus;																// послать байт состояния МУК ЗРУ
-extern volatile unsigned char bRestData, vRestData;												// 1 - восстановить данные
+extern volatile unsigned char bRestData; //, vRestData;												// 1 - восстановить данные
 
 extern int tVkl_ZRU;
 extern unsigned char set100ms, yes100ms;
@@ -129,10 +116,10 @@ void ADC_IRQHandler (void)																													// Обработчик �
 			//Result = 4095;
 			OkResult = 1;
 		}
-		else mode=ADC_ERR;																									  					// Перезапуск опроса текущей четвёрки
+		//else mode=ADC_ERR;																									  					// Перезапуск опроса текущей четвёрки
 	}
 	else	{
-		mode=ADC_ERR;																																		// Перезапуск опроса текущей четвёрки
+		//mode=ADC_ERR;																																		// Перезапуск опроса текущей четвёрки
 		MDR_ADC->ADC1_STATUS &=(!ADC_STATUS_FLG_REG_OVERWRITE);													// Сброс флага перезаписи
 	}
 
