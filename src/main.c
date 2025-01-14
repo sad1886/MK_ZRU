@@ -822,7 +822,6 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 			else 			// этого не было
 			{
 				StepAlgortmTest = st_t_2_04;	
-				PauseOn(1);
 			}
 		}	
 		break;
@@ -914,7 +913,6 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 			else
 			{
 				StepAlgortmTest = st_t_2_09;
-				PauseOn(1);
 			}	
 		}	
 		break;	
@@ -1295,8 +1293,7 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 			}	
 			else
 			{
-				StepAlgortmTest = st_t_8_04;
-				PauseOn(1);																								
+				StepAlgortmTest = st_t_8_04;																						
 			}
 		}	
 		break;
@@ -1397,7 +1394,6 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 			}			 
 			else	{
 				StepAlgortmTest = st_t_8_09;
-				PauseOn(1);
 			}	
 		}	
 		break;	
@@ -2534,7 +2530,7 @@ void Razryd_NVAB (void)													/* _Р_А_З_Р_Я_Д___Н_В_А_Б_ */
 			else
 				stat2[iMUK_ZRU] &= ~errNoOtklRazr;
 			
-			//LimsCount_R = vsCount20;	 sCount_R=0;	bPauza_R=1;								// Включене паузы 20 сек
+			LimsCount_R = vsCount20;	 sCount_R=0;	bPauza_R=1;								// Включене паузы 20 сек
 			StepAlgortmRazr = st_r_6;
 		}	
 		break;
@@ -3207,7 +3203,7 @@ int main(void)
 			
 			case Otkl_ZRU:																										// Отключить ЗРУ от АБ (отключить силовые ключи ЗРУ)
 				pOtkl_Shim_ZRU(0);
-				mode = START;
+				mode = Work;
 				break;
 			
 			case initTEST:																										// Запуск подпрограммы ТВЦ АБ (определение ёмкости АБ) 
@@ -3246,8 +3242,7 @@ int main(void)
 
 						EndTVC = 1; //Устанавливаем флаг того, что процесс окончания ТВЦ запущен
 					} 
-				}
-				else	mode = START; 																						//Начинаем обычный режим работы						
+				}				
 				break;
 
 			case initPodzarayd:																								// Запуск подпрограммы Подзаряд АБ
@@ -3269,8 +3264,8 @@ int main(void)
 				if (stat1[iMUK_ZRU] & bPodzaryad) { 														// если мы находимся в подзаряде, то
 					stat1[iMUK_ZRU] &= ~bPodzaryad; 															// отключаем подзаряд
 					StepAlgortmPodzar = st_p_InitPodzar;
+					mode = START; 																									// переходим в штатный режим работы
 				}
-				mode = START; 																									// переходим в штатный режим работы
 				break;
 			
 			case CAN_not_working_prep:																				// Отказ CAN				
