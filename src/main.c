@@ -2191,6 +2191,7 @@ void TVC_restore(void)	// Восстановление ЭТВЦ
 	}
 	mode = TEST; //теперь будем находится в режиме ТЕСТ
 	stat1[iMUK_ZRU] &= ~bMain; //а не в основном
+	stat1[iMUK_ZRU]	&= ~bPodzaryad;	
 	stat1[iMUK_ZRU] |= bTest; 
 	
 	//сброс всех аварийных сообщений
@@ -2867,23 +2868,39 @@ void WrkCmd_1(void)
 						switch (cmd)	{
 						case gVkl_ZRU:
 							if (!(stat1[iMUK_ZRU]	& pwrZRU))	{																// Если не включено, то включить
-																	mode = Vkl_ZRU;				 												// 0x1 Вкл_ЗРУ
-											if (!tVkl_ZRU) 
-												tVkl_ZRU = VKL_ZRU_DELAY;	
+								mode = Vkl_ZRU;				 																					// 0x1 Вкл_ЗРУ
+								if (!tVkl_ZRU) 	tVkl_ZRU = VKL_ZRU_DELAY;	
 							}																						break;								
-						case gOtkl_ZRU:				mode = Otkl_ZRU;				break;			 					// 0x2 Откл_ЗРУ
+						case gOtkl_ZRU:
+							if (stat1[iMUK_ZRU]	& pwrZRU)		{																	// Если не включено, то включить
+								mode = Otkl_ZRU;	
+							}																						break;			 					// 0x2 Откл_ЗРУ
 						case gVkl_Test:	 																										// 0x3 Вкл_ТЕСТ. Первый шаг алгоритма ТВЦ
-							if(DataOk && (stat1[iMUK_ZRU]	& pwrZRU))	{
+							if(DataOk && (stat1[iMUK_ZRU]	& pwrZRU) &&
+								(!(stat1[iMUK_ZRU] & bTest)) && 
+							  (!(stat1[iMUK_ZRU] & bPodzaryad)))	{
 								mode = initTEST;									
 								ETVC = (0xf0 & pack1[4]) >> 4;																	// ЭТВЦ содержится в 5 байте принятого пакета команда
 							}																						break;		
-						case gOtkl_Test: 			EndTVC = 0; mode = Otkl_TEST;				break;		// 0x4 Откл_ТЕСТ
-						case gOtkl_RS:	 			pOtkl_RS(0);						break;								// 0x5 ОТКЛ РС 	отключать разрядные сопротивления в БЭ mode = Otkl_RS;
+						case gOtkl_Test:
+							if ((stat1[iMUK_ZRU] & bTest) && (mode != Otkl_TEST)) { 					// если мы находимся в тестировании, то
+								EndTVC = 0;	 mode = Otkl_TEST;																	// 0x4 Откл_ТЕСТ
+							}																						break;
+						case gOtkl_RS:	 pOtkl_RS(0);									break;								// 0x5 ОТКЛ РС 	отключать разрядные сопротивления в БЭ mode = Otkl_RS;
+							
 						case gVkl_Podzarayd:
-							if(DataOk && (stat1[iMUK_ZRU]	& pwrZRU))
-								mode = initPodzarayd;											break;								// 0x6 ВКЛ Подзаряд
-						case gOtkl_Podzarayd:	mode = Otkl_Podzarayd;	break;								// 0x7 ОТКЛ Подзаряд
-						case OZVD:						bRestData = 0; bRestData_indiv = 0; break;		// 0x8 «Отключение запроса на восстановление данных»
+							if(DataOk && (stat1[iMUK_ZRU]	& pwrZRU) &&
+								(!(stat1[iMUK_ZRU] & bTest)) &&
+								(!(stat1[iMUK_ZRU] & bPodzaryad)))	{
+									mode = initPodzarayd;	
+								}																					break;								// 0x6 ВКЛ Подзаряд
+							
+						case gOtkl_Podzarayd:
+							if ((stat1[iMUK_ZRU] & bPodzaryad) && (mode != Otkl_Podzarayd))	{						
+								mode = Otkl_Podzarayd;																					// 0x7 ОТКЛ Подзаряд
+							}																						break;
+						case OZVD:	bRestData = 0; bRestData_indiv = 0;											// 0x8 «Отключение запроса на восстановление данных»
+																													break;
 						}
 												p_ParRs1 = PackRs2;	BatchSize1 = lngPackRs2;	break;
 		
@@ -2901,7 +2918,7 @@ void WrkCmd_1(void)
 	case	gService:
 												p_ParRs1 = PackRs8;	BatchSize1 = lngPackRs8;	break;		// вспомогательные данные 	
 	case	gVersion:
-												p_ParRs1 = PackRs254;	BatchSize1 = lngPackRs254;	break;		// вспомогательные данные 	
+												p_ParRs1 = PackRs254;	BatchSize1 = lngPackRs254; break;	// вспомогательные данные 	
 	case	gTstLine:				
 												p_ParRs1 = PackRs10;BatchSize1 = lngPackRs10;	break;		// 0xFF	проверка связи
 	}
@@ -2937,24 +2954,39 @@ void WrkCmd_2(void)
 						switch (cmd)	{
 						case gVkl_ZRU:
 							if (!(stat1[iMUK_ZRU]	& pwrZRU))	{																// Если не включено, то включить
-																	mode = Vkl_ZRU;  												 			// 0x1 Вкл_ЗРУ
-											if (!tVkl_ZRU) 
-												tVkl_ZRU = VKL_ZRU_DELAY;					
+								mode = Vkl_ZRU;				 																					// 0x1 Вкл_ЗРУ
+								if (!tVkl_ZRU) 	tVkl_ZRU = VKL_ZRU_DELAY;	
 							}																						break;								
-						case gOtkl_ZRU:				mode = Otkl_ZRU;				break;			 					// 0x2 Откл_ЗРУ
+						case gOtkl_ZRU:
+							if (stat1[iMUK_ZRU]	& pwrZRU)		{																	// Если не включено, то включить
+								mode = Otkl_ZRU;	
+							}																						break;			 					// 0x2 Откл_ЗРУ
 						case gVkl_Test:	 																										// 0x3 Вкл_ТЕСТ. Первый шаг алгоритма ТВЦ
-							if(DataOk && (stat1[iMUK_ZRU]	& pwrZRU))	{
+							if(DataOk && (stat1[iMUK_ZRU]	& pwrZRU) &&
+								(!(stat1[iMUK_ZRU] & bTest)) && 
+							  (!(stat1[iMUK_ZRU] & bPodzaryad)))	{
 								mode = initTEST;									
-								ETVC = (0xf0 & pack1[4]) >> 4;																	// ЭТВЦ содержится в 5 байте принятого пакета команда
-							}
-																													break;														
-						case gOtkl_Test: 			EndTVC = 0; mode = Otkl_TEST;				break;								// 0x4 Откл_ТЕСТ
-						case gOtkl_RS:	 			pOtkl_RS(0);						break;								// 0x5 ОТКЛ РС 	отключать разрядные сопротивления в БЭ mode = Otkl_RS;
+								ETVC = (0xf0 & pack2[4]) >> 4;																	// ЭТВЦ содержится в 5 байте принятого пакета команда
+							}																						break;		
+						case gOtkl_Test:
+							if ((stat1[iMUK_ZRU] & bTest) && (mode != Otkl_TEST)) { 					// если мы находимся в тестировании, то
+								EndTVC = 0;	 mode = Otkl_TEST;																	// 0x4 Откл_ТЕСТ
+							}																						break;
+						case gOtkl_RS:	 pOtkl_RS(0);									break;								// 0x5 ОТКЛ РС 	отключать разрядные сопротивления в БЭ mode = Otkl_RS;
+							
 						case gVkl_Podzarayd:
-							if(DataOk && (stat1[iMUK_ZRU]	& pwrZRU))
-								mode = initPodzarayd;																	break;		// 0x6 ВКЛ Подзаряд
-						case gOtkl_Podzarayd:	mode = Otkl_Podzarayd;	break;								// 0x7 ОТКЛ Подзаряд
-						case OZVD:						bRestData = 0; bRestData_indiv = 0; break;		// 0x8 «Отключение запроса на восстановление данных»
+							if(DataOk && (stat1[iMUK_ZRU]	& pwrZRU) &&
+								(!(stat1[iMUK_ZRU] & bTest)) &&
+								(!(stat1[iMUK_ZRU] & bPodzaryad)))	{
+									mode = initPodzarayd;	
+								}																					break;								// 0x6 ВКЛ Подзаряд
+							
+						case gOtkl_Podzarayd:
+							if ((stat1[iMUK_ZRU] & bPodzaryad) && (mode != Otkl_Podzarayd))	{						
+								mode = Otkl_Podzarayd;																					// 0x7 ОТКЛ Подзаряд
+							}																						break;
+						case OZVD:	bRestData = 0; bRestData_indiv = 0;											// 0x8 «Отключение запроса на восстановление данных»
+																													break;
 						}
 												p_ParRs2 = PackRs2;	BatchSize2 = lngPackRs2;	break;
 		
@@ -3179,6 +3211,8 @@ int main(void)
 		{		
 			case START:																												// Начальный запуск
 				stat1[iMUK_ZRU] |= bMain;
+				stat1[iMUK_ZRU]	&= ~bTest;
+				stat1[iMUK_ZRU]	&= ~bPodzaryad;			
 				ResetAvars();  											
 				StepAlgortmZar = st_InitZarayd;																	// StepAlgortmZar = bInitZarayd
 				StepAlgortmRazr = st_InitRazryad;
@@ -3203,13 +3237,17 @@ int main(void)
 			
 			case Otkl_ZRU:																										// Отключить ЗРУ от АБ (отключить силовые ключи ЗРУ)
 				pOtkl_Shim_ZRU(0);
-				mode = Work;
+				if (stat1[iMUK_ZRU] & bTest)
+					mode = Otkl_TEST;																		 					// если мы находимся в тестировании, то произвести штатную процедуру завершения Otkl_TEST
+				else	
+					mode = START;
+					
 				break;
 			
 			case initTEST:																										// Запуск подпрограммы ТВЦ АБ (определение ёмкости АБ) 
-				if (!(stat1[iMUK_ZRU] & bPodzaryad)) { //если мы находимся в подзаряде, то остаемся в подзаряде
+				//if (!(stat1[iMUK_ZRU] & bPodzaryad)) { //если мы находимся в подзаряде, то остаемся в подзаряде
 					TVC_restore(); //получив команду ВКЛ ТЕСТ, мы теперь всегда принимаем ЭТВЦ. Эта функция выбирает, с какого этапа начнется/продолжится тестирование	
-				}
+				//}
 				break;
 								
 			case TEST:																												// Запуск подпрограммы ТВЦ АБ (определение ёмкости АБ) 
@@ -3217,7 +3255,7 @@ int main(void)
 				break;
 			
 			case Otkl_TEST:	
-				if ((stat1[iMUK_ZRU] & bTest)) {
+				//if ((stat1[iMUK_ZRU] & bTest)) {
 					if(EndTVC) //если процесс окончания ТВЦ уже был запущен
 					{					
 						if (!bPauza_TVC) 	{ // то контролируем окончание задержки, прежде чем перейти в основной режим					
@@ -3231,7 +3269,6 @@ int main(void)
 					else //нужно запустить процесс окончания ТВЦ: выполнить команды и установить паузу ожидания исполнения этих команд
 					{
 						LimsCountTVC = vsCount20;		sCountTVC=0;		bPauza_TVC=1; 	// Подготовавливаем паузу 20 секунд			
-						
 						// По принятии команды Откл.Тест или при выходе из алгоритма тестирования вызываем эти функции
 						pVkl_Zapr_Zarayd();																					// «ЗАПРЕТ ЗАРЯД»  = 1
 						pVkl_Zapr_Razrayd();																				// «ЗАПРЕТ РАЗРЯД» = 1
@@ -3239,21 +3276,20 @@ int main(void)
 						pOtkl_Test_Razrayd();																				// "Откл_ТЕСТ РАЗР" 		
 						
 						pOtkl_RS(0); 
-
 						EndTVC = 1; //Устанавливаем флаг того, что процесс окончания ТВЦ запущен
 					} 
-				}				
+				//}				
 				break;
 
 			case initPodzarayd:																								// Запуск подпрограммы Подзаряд АБ
-				if (!(stat1[iMUK_ZRU] & bTest)) { //если мы находимся в тестировании, то остаемся в тестировании
-					if (!(stat1[iMUK_ZRU] & bPodzaryad))	{						
+				//if (!(stat1[iMUK_ZRU] & bTest)) { //если мы находимся в тестировании, то остаемся в тестировании
+					//if (!(stat1[iMUK_ZRU] & bPodzaryad))	{						
 						stat1[iMUK_ZRU] &= ~bMain;
 						stat1[iMUK_ZRU] |= bPodzaryad;	StepAlgortmPodzar = st_p_InitPodzar;
-					}
+					//}
 					ResetAvars(); //сбрасываем все аварийные сообщения
 					mode = Vkl_Podzarayd;
-				}
+				//}
 				break;
 				
 			case Vkl_Podzarayd:																								// Запуск подпрограммы Подзаряд АБ
@@ -3261,11 +3297,11 @@ int main(void)
 				break;
 			
 			case Otkl_Podzarayd:																							// Останов подпрограммы Подзаряд АБ
-				if (stat1[iMUK_ZRU] & bPodzaryad) { 														// если мы находимся в подзаряде, то
+				//if (stat1[iMUK_ZRU] & bPodzaryad) { 														// если мы находимся в подзаряде, то
 					stat1[iMUK_ZRU] &= ~bPodzaryad; 															// отключаем подзаряд
 					StepAlgortmPodzar = st_p_InitPodzar;
 					mode = START; 																									// переходим в штатный режим работы
-				}
+				//}
 				break;
 			
 			case CAN_not_working_prep:																				// Отказ CAN				

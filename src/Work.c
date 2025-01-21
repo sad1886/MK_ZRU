@@ -148,8 +148,6 @@ void pOtkl_Shim_ZRU (int bWait)																// "ОТКЛ ЗРУ"
 	MDR_PORTA->RXTX &= ~0x1;	Wait_(tWaitCmd);									// Отключить ЗРУ от СЭС 	25/PA0
 	MDR_PORTF->RXTX &= ~0x8;	Wait_(tWaitCmd);									// Отключить ЗРУ от АБ		22/PF3
 	stat1[iMUK_ZRU]	&= ~pwrZRU;
-	stat1[iMUK_ZRU]	&= ~bTest;
-	stat1[iMUK_ZRU]	&= ~bPodzaryad;
 	stat3[iMUK_ZRU] &= ~vklZRU;																	// ЗРУ отключено
 	set100ms = 1;
 	
