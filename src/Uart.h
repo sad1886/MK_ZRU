@@ -19,7 +19,7 @@
 #define gCmd_for_ZRU				0x2														// команда для ЗРУ
 #define gStat_AB_short			0x3														// Сост_АБ_Кратк_БЭ - краткая телеметрия БЭ
 #define gStat_AB_Full				0x4														// Сост_АБ_Полн_БЭ – полная телеметрия БЭ
-#define gUstavki_Curr				0x5														// Уставки_Текущ - управление БЭ
+#define gUstavki_Curr				0x5														// Уставки_ЗРУ от БЦУ
 #define gUstavki_Tst				0x6														// контроль параметров (уставок) алгоритмов ЗРУ
 #define gSaveData_to_BCU		0x7														// запоминаемые для восстановления данные в БВС 
 #define gService						0x8														// вспомогательные данные

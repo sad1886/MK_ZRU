@@ -41,7 +41,7 @@ enum ZarSteps StepAlgortmZar;
 enum RazSteps StepAlgortmRazr; 
 enum PodzarSteps StepAlgortmPodzar;
 
-uint32_t bitNotZar, bitNotRaz;																// Состояние проводных линий
+uint32_t bitNotZar=0, bitNotRaz;																// Состояние проводных линий
 uint32_t Prev_bitNotZar, Prev_bitNotRaz;											// предыдущее состояние проводных линий, необходимо чтобы отслеживать было ли мигание
 uint32_t ZaprZarProv, ZaprRazrProv; 													// состояние проводных запретов заряда, разряда. Формируется на основе "мигания" соответствующих проводных линий
 uint32_t cntZarProv, cntRazrProv; //счетчики секунд отсутствия мигания проводных линий запретов
@@ -256,6 +256,7 @@ void pOtkl_RS (int bWait)
 //функция считывает состояние проводных линий, отвечающих за запреты
 void pNotCan (void)																						// При отказе 2-х CAN от БЭ управление проводными сигналами
 {	
+//	bitNotZar = !bitNotZar;	
 	bitNotZar = 0x080 & MDR_PORTB->RXTX;												// Запр заряда 44/РВ7
 	bitNotRaz = 0x100 & MDR_PORTB->RXTX;												// Запр разряд 45/РB8
 }

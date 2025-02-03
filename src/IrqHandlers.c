@@ -88,6 +88,8 @@ unsigned char	secStat;																										// Счётчик секунд
 extern unsigned char	secUart1, secUart2;																	// Счётчик секунд Uart1, флаг достижения двух секунд
 extern unsigned char	secTimeOutCmd, AddSec;
 
+extern int	mlsec, readProvod;
+
 //--------------------------- Общие переменные ------------------------------------------------------------------------------
 extern int iMUK_ZRU;
 extern volatile unsigned char mode;																				// Текущий режим работы контроллера, последний режим работы
@@ -458,14 +460,17 @@ void CAN2_IRQHandler()																														// Получает данн
 void SysTick_Handler()
 //=================================================================================================================================================
 {
-	if ((bTimeOutCmd)&&(secTimeOutCmd<(10-iMUK_ZRU)))	{	secTimeOutCmd++;	}										// Обслуживание таймаута 1 сек
+	if ((bTimeOutCmd)&&(secTimeOutCmd<(10-iMUK_ZRU)))	{	secTimeOutCmd++;	}					// Обслуживание таймаута 1 сек
 	else																		{	secTimeOutCmd = 0;	bTimeOutCmd = 0;	}
 	
 	secST++;
-	if (secST >= 10)	{	secST = 0;	AddSec = 1;	}																			// Достигнута секунда
+	if (secST >= 10)	{	secST = 0;	AddSec = 1;	}																		// Достигнута секунда
 
 	secStat++;
 	if (secStat >= 7)	{	secStat = 0;	bSendStatus = 1;	}														// Достигнуто 0.7 секунды
+
+	mlsec++;
+	if (mlsec >= 5)	{	mlsec = 0;	readProvod = 1;	}																	// Достигнуто 0.5 секунды
 
 	if (tVkl_ZRU)		tVkl_ZRU--;																											// Ожидание Вкл_ЗРУ
 
@@ -511,7 +516,7 @@ void UART1_IRQHandler(void)
 						case gTstLine:						lngPack1 = lngStat_ZRU;			break;					// проверка связи
 						
 						case gCmd_for_ZRU:				lngPack1 = lngCmd_ZRU;			break;					// команда для ЗРУ
-						case gUstavki_Curr:				lngPack1 = lngUstavki_Curr;	break;					// Уставки_Текущ - управление БЭ
+						case gUstavki_Curr:				lngPack1 = lngUstavki_Curr;	break;					// Уставки_ЗРУ от БЦУ 36 параметров
 						default:							{	bBadCmd1 = 1;	}																// недопустимая команда
 						}
 					}

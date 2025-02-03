@@ -219,6 +219,7 @@ extern unsigned char bReqBCU[2];																		// Флаг: поступил 
 unsigned char bUstavkiBCU;
 
 //--------------------------- Time переменные ---------------------------------------------------------------------------
+int	mlsec, readProvod;
 volatile unsigned char bTimeOutCmd;																// Флаг Время ожидания ответа результата от БЭ команды 
 volatile unsigned char bOneSec;																		// Флаг 1 секунда
 volatile unsigned char nSutok;																		// Число суток с начала счёта часов в ТВЦ при разряде РС
@@ -261,6 +262,8 @@ unsigned char mode_Razryad = 0; //если не 0, значит мы наход�
 unsigned char mode_Zaryad = 0;  //если не 0, значит мы находимся в режиме заряда (ток заряда больше нуля) 
 
 unsigned char bReadyWrk, cntReadyWrk;			// Разрешение на ответы по RS485
+	
+
 //-------------------------------------------------------------------------------------------------------------------------
 // Подготовка мажоритированных данных для телеметрии
 unsigned int MajorStatZRU(unsigned char * stat);
@@ -727,12 +730,12 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 					  ((stat4[iMUK_ZRU2] & br1) && ( stat4[iMUK_ZRU3] & br1)) )
 			{			
 				if (P >= Pv) 
+					StepAlgortmTest = st_t_1_07;													
+				else	
 				{																								
 					stat3[iMUK_ZRU] |= errPrevDopustT;															// "Превышение допустимой температуры НВАБ"
 					StepAlgortmTest = st_t_InitEnd_Alg_TVC;													// ******** Окончание по превышению температуры											
 				}													
-				else	
-					StepAlgortmTest = st_t_1_07;													
 			}	
 			else	{																														
 				PauseOn(60);
@@ -1077,7 +1080,7 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 	case st_t_5_03:					
 		
 		if (!bPauza) {																												// При отладке vhCount2 = 20 сек
-			if	((Uab > 80)&&(tstatTVC/60 >= vmCount10))	
+			if	((Uab > 80)&&(tstatTVC >= vmCount10))														// tstatTVC в секундах
 			{												 
 				StepAlgortmTest = st_t_6_01;																		
 			}
@@ -1991,7 +1994,7 @@ void BadAK_registration()
 
 	for(i = 0; i < 5; i++) //пробегаем по всем номерам отказавших АК
 	{
-		if((nBadAk[i] <= 0) && (nBadAk[i] >72)) //проверяем, корректный ли номер, и не равен ли он 0
+		if((nBadAk[i] <= 0) || (nBadAk[i] >72)) //проверяем, корректный ли номер, и не равен ли он 0
 			continue; //если номер некорректный или равен нулю - просто игнорируем его и переходим к следующему элементу массива
 		
 		nBadAK_U[nBadAk[i]-1] = 1;  //фиксируем номер АК как отказавший, с учетом того, что индексация в массиве начинается с 0 (поэтому делаем -1)
@@ -2045,15 +2048,13 @@ void MakePack5(void)
 	nGudAk = nAllAE - cntBadAk;
 	BadAK_registration();
 
-	//if (cntBadAk)	{
-		CurrentDlc = 5; CurrentCmd = CAN_NumBadAk;
-		CAN_SendCmd(AdrMUK_ZRU, CurrentDlc, CurrentCmd);										// отправки пакета в БЭ
-		bRunCmdCAN = 1;		bTimeOutCmd = 1;
+	CurrentDlc = 5; CurrentCmd = CAN_NumBadAk;
+	CAN_SendCmd(AdrMUK_ZRU, CurrentDlc, CurrentCmd);										// отправки пакета в БЭ
+	bRunCmdCAN = 1;		bTimeOutCmd = 1;
 //		CAN_SendCmd(AdrMUK2_ZRU, CurrentDlc, CurrentCmd);										// отправки пакета в БЭ
 //		bRunCmdCAN = 1;		bTimeOutCmd = 1;
 //		CAN_SendCmd(AdrMUK3_ZRU, CurrentDlc, CurrentCmd);										// отправки пакета в БЭ
 //		bRunCmdCAN = 1;		bTimeOutCmd = 1;
-	//}
 }
 
 //-------------------------------------------------------------------------------------------------------------------------
@@ -2520,7 +2521,7 @@ void Razryd_NVAB (void)													/* _Р_А_З_Р_Я_Д___Н_В_А_Б_ */
 			if	(T >= 50)	
 					stat3[iMUK_ZRU] |=  errPrevDopustT;													// "Превышение допустимой температуры АБ" - процесс разряда
 			else	{				
-				if (aI_zar < 0.8)	stat3[iMUK_ZRU] &= ~errPrevDopustT;					//снимаем сообщение об аварии только если мы находились в режиме разряд				
+				if (aI_razr > 0.8)	stat3[iMUK_ZRU] &= ~errPrevDopustT;				//снимаем сообщение об аварии только если мы находились в режиме разряд				
 			}
 			
 			LimsCount_R = vsCount1; 	 sCount_R=0;	bPauza_R=1;
@@ -2714,41 +2715,6 @@ void OneSecAdd (void)													/* Добавить секунду */
 		}
 	}	
 	
-	//проводные запреты
-	pNotCan(); //считали состояние проводных линий раз в секунду
-	
-	//заряд
-	cntZarProv++;
-	if(bitNotZar != Prev_bitNotZar) //если изменилось состояние по сравнению с предыдущим
-	{
-		cntZarProv = 0; //обнулили счетчик секунд
-		ZaprZarProv = 0; //запрет заряда проводной = 0
-	}
-	Prev_bitNotZar = bitNotZar; //запомнили состояние
-	
-	if(cntZarProv > 5) //если долго не мигали
-	{
-		cntZarProv = 0; //обнуляем счетчик секунд
-		ZaprZarProv = 1; //запрет заряда проводной = 1
-	}
-	
-	//разряд
-	cntRazrProv++;
-	if(bitNotRaz != Prev_bitNotRaz) //если изменилось состояние по сравнению с предыдущим
-	{
-		cntRazrProv = 0; //обнулили счетчик секунд
-		ZaprRazrProv = 0; //запрет разряда проводной = 0
-	}
-	Prev_bitNotRaz = bitNotRaz; //запомнили состояние
-	
-	if(cntRazrProv > 5) //если долго не мигали
-	{
-		cntRazrProv = 0; //обнуляем счетчик секунд
-		ZaprRazrProv = 1; //запрет разряда проводной = 1
-	}	
-	//~проводные запреты	
-		
-
 	//......................................................................
 	if (bPauza_TVC)	{	sCountTVC++;
 		if (sCountTVC >= LimsCountTVC)	{ sCountTVC = 0;	bPauza_TVC = 0;}	}		// Обслуживание паузы ТВЦ
@@ -2927,7 +2893,7 @@ void WrkCmd_1(void)
 
 	case 	gStat_AB_Full:	p_ParRs1 = PackRs4;	BatchSize1 = lngPackRs4;	break;		// Сост_АБ_Полн_БЭ – полная телеметрия БЭ
 
-	case	gUstavki_Curr:	bUstavkiBCU = 1;			p_InPack = pack1+4;								// Уставки_Текущ - управление БЭ
+	case	gUstavki_Curr:	bUstavkiBCU = 1;			p_InPack = pack1+4;								// Уставки_ЗРУ от БЦУ
 												p_ParRs1 = PackRs5;	BatchSize1 = lngPackRs5;	break;
 		
 	case	gUstavki_Tst:		p_ParRs1 = PackRs6;	BatchSize1 = lngPackRs6;	break;		// контроль параметров (уставок) алгоритмов ЗРУ
@@ -3112,7 +3078,7 @@ int main(void)
 	while (1)												
 	{
 	
-		if (AddSec) OneSecAdd();																						// 
+		if (AddSec) {	OneSecAdd();	MakePack2_5_8_10();	}										// Обновить пакеты 2, 5, 8, 10 (на всякий случай)
 			
 		//.....................................................................................................................
 		if ((bRunCmdCAN)&&(!bTimeOutCmd))	{																	// Ожидание (400мс) подтверждения о получении команды БЭ и повтор команды
@@ -3377,6 +3343,42 @@ int main(void)
 
 		//..............................................................................................................................
 		if (bSendStatus)	{	CAN_SendStatusZRU();	bSendStatus = 0;	}	
+		
+		//..............................................................................................................................
+		if (readProvod)	{
+			//проводные запреты
+			pNotCan(); //считали состояние проводных линий раз в секунду bitNotZar, bitNotRaz
+			//заряд	--------------------------------------------------------------------------------
+			cntZarProv++;
+			if(bitNotZar != Prev_bitNotZar) //если изменилось состояние по сравнению с предыдущим
+			{
+				cntZarProv = 0; //обнулили счетчик секунд
+				ZaprZarProv = 0; //запрет заряда проводной = 0
+			}
+			Prev_bitNotZar = bitNotZar; //запомнили состояние
+	
+			if(cntZarProv > 5) //если долго не мигали
+			{
+				cntZarProv = 0; //обнуляем счетчик секунд
+				ZaprZarProv = 1; //запрет заряда проводной = 1
+			}
+			//разряд	-------------------------------------------------------------------------------
+			cntRazrProv++;
+			if(bitNotRaz != Prev_bitNotRaz) //если изменилось состояние по сравнению с предыдущим
+			{
+				cntRazrProv = 0; //обнулили счетчик секунд
+				ZaprRazrProv = 0; //запрет разряда проводной = 0
+			}
+			Prev_bitNotRaz = bitNotRaz; //запомнили состояние
+	
+			if(cntRazrProv > 5) //если долго не мигали
+			{
+				cntRazrProv = 0; //обнуляем счетчик секунд
+				ZaprRazrProv = 1; //запрет разряда проводной = 1
+			}	
+			
+			readProvod=0;	mlsec = 0;
+		}
 				
 		#ifdef WATCH_DOG
 			resetInternalWatchdog();																					// Перезапуск (сброс) внутреннего сторожевого таймера.
