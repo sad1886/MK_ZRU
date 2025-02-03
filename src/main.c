@@ -729,7 +729,8 @@ void Test_NVAB (void)														/* _Т_В_Ц___Н_В_А_Б_ */
 					  (P >= Pv) ||
 					  ((stat4[iMUK_ZRU2] & br1) && ( stat4[iMUK_ZRU3] & br1)) )
 			{			
-				if (P >= Pv) 
+				if ((P >= Pv) ||
+					((stat4[iMUK_ZRU2] & br1) && ( stat4[iMUK_ZRU3] & br1)) )			// Добавлено для 3-го МУКа, чтобы не ушёл на окончание при высокой температуре
 					StepAlgortmTest = st_t_1_07;													
 				else	
 				{																								
