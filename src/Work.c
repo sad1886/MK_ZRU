@@ -525,8 +525,8 @@ void PutParamADC (void)																																				// С 14.07.20
 		
 		case 4:	
 			vU_zru = Koef_k_Uab_zru[iMUK_ZRU] * Uadc + Koef_b_Uab_zru[iMUK_ZRU];																// Реальные значения U
-//			if (mode_Zaryad)		Vals_ZRU[iadc-1] -= aI_zar * KoefIzarABT[iMUK_ZRU];								// Корекция значения U при заряде
-//			if (mode_Razryad)		Vals_ZRU[iadc-1] += aI_razr* KoefIrazABT[iMUK_ZRU];								// Корекция значения U при разряде
+			if (mode_Zaryad)		vU_zru -= aI_zar * KoefIzarABT[iMUK_ZRU];								// Корекция значения U при заряде
+			if (mode_Razryad)		vU_zru += aI_razr* KoefIrazABT[iMUK_ZRU];								// Корекция значения U при разряде
 			break;
 			
 		case 6:				
