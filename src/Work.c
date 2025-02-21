@@ -477,46 +477,42 @@ void PutParamADC (void)																																				// С 14.07.20
 //debug			
 //			Uadc = 1.9;
 //~debug
-			if (Uadc < cUsm[iMUK_ZRU][iadc-1])																																	// З А Р Я Д
+			if (Uadc < cUsm[iMUK_ZRU][iadc-1])																														// З А Р Я Д
 			{	
-				aI_zar_dt[iadc-1] = KoefZar[iMUK_ZRU][iadc-1] * (cUsm[iMUK_ZRU][iadc-1]-Uadc); // записываем полученное значение тока с учетом тарировки
+				aI_zar_dt[iadc-1] = KoefZar[iMUK_ZRU][iadc-1] * (cUsm[iMUK_ZRU][iadc-1]-Uadc); 							// записываем полученное значение тока с учетом тарировки
 				// Определение статуса ЗРУ
-				if ((aI_zar_dt[0] > fNul)||(aI_zar_dt[1] > fNul))	{																									// если ток выше порога fNul
-					if (mode_Razryad != 0) 
+				if ((aI_zar_dt[0] > fNul)||(aI_zar_dt[1] > fNul))	{																					// если ток выше порога fNul = 0.8
+					if (mode_Razryad != 0) 		// если был разряд, значит нужно начать заново алгоритм заряда
 					{
-						StepAlgortmZar = st_InitZarayd;																																//начинаем алгоритм заново						
+						StepAlgortmZar = st_InitZarayd;																													//начинаем алгоритм заново						
 						ResetAvars();	//в момент перехода из одного режима в другой обнуляем эти флаги				
-						//stat2[iMUK_ZRU] &= ~(errNoVklRazr|errNoOtklRazr);																						// Сброс аварийных сообщений разряда
-						//stat3[iMUK_ZRU] &= ~(errNoOgrTokRazr|errPrevDopustT);  											
-					} //если был разряд, значит нужно начать заново алгоритм заряда
+					}
 					mode_Razryad = 0; //больше нет разряда								
 					mode_Zaryad = 1; //теперь у нас заряд
 					C_raz = 0;	W_raz = 0;
 				}
 				// Получение значений Зарядного и Разрядного токов
-				if (aI_zar_dt[iadc-1]<0.5)	aI_zar_dt[iadc-1] = 0; //если значение ниже порога, то считаем ток нулевым
+				if (aI_zar_dt[iadc-1]<0.1 )	aI_zar_dt[iadc-1] = 0; //если значение ниже порога, то считаем ток нулевым
 				aI_zar = (aI_zar_dt[0] + aI_zar_dt[1])/2;
 				aI_razr_dt[0] = aI_razr_dt[1] = 0;
 				aI_razr = 0;
 			}																																																		
 			else
 			{																																															// Р А З Р Я Д
-				aI_razr_dt[iadc-1] = KoefRazr[iMUK_ZRU][iadc-1] * (Uadc-cUsm[iMUK_ZRU][iadc-1]);									// Реальные значения I разряда
+				aI_razr_dt[iadc-1] = KoefRazr[iMUK_ZRU][iadc-1] * (Uadc-cUsm[iMUK_ZRU][iadc-1]);						// Реальные значения I разряда
 				// Определение статуса ЗРУ
 				if ((aI_razr_dt[0] > fNul)||(aI_razr_dt[1] > fNul))																					// если ток выше порога fNul
 				{
-					if (mode_Zaryad != 0) 
+					if (mode_Zaryad != 0)  //если был заряд, значит нужно начать заново алгоритм разряда
 					{
-						StepAlgortmRazr = st_InitRazryad;																															//начинаем алгоритм заново
+						StepAlgortmRazr = st_InitRazryad;																												//начинаем алгоритм заново
 						ResetAvars();	//в момент перехода из одного режима в другой обнуляем эти флаги					
-						//stat2[iMUK_ZRU] &= ~(errNoVklZar|errNoOtklZar);																							// Сброс аварийных сообщений заряда
-						//stat3[iMUK_ZRU] &= ~(errNoOgrTokZar|errPrevDopustT);  											
-					} //если был заряд, значит нужно начать заново алгоритм разряда
+					}
 					mode_Zaryad = 0; //больше нет заряда						
 					mode_Razryad = 1; //теперь у нас разряд 
 				}
 				// Получение значений Зарядного и Разрядного токов
-				if (aI_razr_dt[iadc-1]<0.5)		aI_razr_dt[iadc-1] = 0;
+				if (aI_razr_dt[iadc-1]<0.1 )		aI_razr_dt[iadc-1] = 0;
 				aI_razr = (aI_razr_dt[0] + aI_razr_dt[1])/2;
 				aI_zar_dt[0] = aI_zar_dt[1] = 0;
 				aI_zar = 0;	
@@ -524,21 +520,22 @@ void PutParamADC (void)																																				// С 14.07.20
 			break;
 		
 		case 4:	
-			vU_zru = Koef_k_Uab_zru[iMUK_ZRU] * Uadc + Koef_b_Uab_zru[iMUK_ZRU];																// Реальные значения U
-			if (mode_Zaryad)		vU_zru -= aI_zar * KoefIzarABT[iMUK_ZRU];								// Корекция значения U при заряде
-			if (mode_Razryad)		vU_zru += aI_razr* KoefIrazABT[iMUK_ZRU];								// Корекция значения U при разряде
-			break;
+			vU_zru = Koef_k_Uab_zru[iMUK_ZRU] * Uadc + Koef_b_Uab_zru[iMUK_ZRU];													// Реальные значения U
+			if (mode_Zaryad)		vU_zru += aI_zar * KoefIzarABT[iMUK_ZRU];																	// Коррекция значения U при заряде
+			if (mode_Razryad)		vU_zru -= aI_razr* KoefIrazABT[iMUK_ZRU];																	// Коррекция значения U при разряде
+
+		break;
 			
 		case 6:				
-			dTemp1_zru = Koef_k_dtemp1[iMUK_ZRU] * Uadc + Koef_b_dtemp1[iMUK_ZRU];																// Реальные значения T1
-//			if (mode_Zaryad)		Vals_ZRU[iadc-1] -= aI_zar * KoefIzarT[iMUK_ZRU][iadc-6];					// Корекция Т1
-//			if (mode_Razryad)		Vals_ZRU[iadc-1] += aI_razr* KoefIrazT[iMUK_ZRU][iadc-6];					// Корекция Т1
+			dTemp1_zru = Koef_k_dtemp1[iMUK_ZRU] * Uadc + Koef_b_dtemp1[iMUK_ZRU];												// Реальные значения T1
+//			if (mode_Zaryad)		Vals_ZRU[iadc-1] -= aI_zar * KoefIzarT[iMUK_ZRU][iadc-6];									// Корекция Т1
+//			if (mode_Razryad)		Vals_ZRU[iadc-1] += aI_razr* KoefIrazT[iMUK_ZRU][iadc-6];									// Корекция Т1
 		break;
 			
 		case 7:		
-			dTemp2_zru = Koef_k_dtemp2[iMUK_ZRU] * Uadc + Koef_b_dtemp2[iMUK_ZRU];																// Реальные значения T2
-//			if (mode_Zaryad)		Vals_ZRU[iadc-1] -= aI_zar * KoefIzarT[iMUK_ZRU][iadc-6];					// Корекция Т2
-//			if (mode_Razryad)		Vals_ZRU[iadc-1] += aI_razr* KoefIrazT[iMUK_ZRU][iadc-6];					// Корекция Т2
+			dTemp2_zru = Koef_k_dtemp2[iMUK_ZRU] * Uadc + Koef_b_dtemp2[iMUK_ZRU];												// Реальные значения T2
+//			if (mode_Zaryad)		Vals_ZRU[iadc-1] -= aI_zar * KoefIzarT[iMUK_ZRU][iadc-6];									// Корекция Т2
+//			if (mode_Razryad)		Vals_ZRU[iadc-1] += aI_razr* KoefIrazT[iMUK_ZRU][iadc-6];									// Корекция Т2
 		break;
 	}			
 	
