@@ -88,7 +88,7 @@ unsigned char	secStat;																										// Счётчик секунд
 extern unsigned char	secUart1, secUart2;																	// Счётчик секунд Uart1, флаг достижения двух секунд
 extern unsigned char	secTimeOutCmd, AddSec;
 
-extern int	mlsec, readProvod;
+extern int	mlsec, tstProvod;
 
 //--------------------------- Общие переменные ------------------------------------------------------------------------------
 extern int iMUK_ZRU;
@@ -106,6 +106,11 @@ extern int tVkl_ZRU;
 extern unsigned char set100ms, yes100ms;
 
 extern volatile unsigned char iUst_mas[3];										// Значения уставок всех трех МК
+
+extern uint32_t bitNotZar, bitNotRaz;																			// Состояние проводных линий
+uint32_t pred_bitNotZar, pred_bitNotRaz;																	// Предыдущее состояние проводных линий
+
+unsigned char cntIzmZar, cntIzmRaz;
 
 //=================================================================================================================================================
 void ADC_IRQHandler (void)																													// Обработчик прерывания от АЦП
@@ -468,16 +473,44 @@ void SysTick_Handler()
 
 	secStat++;
 	if (secStat >= 7)	{	secStat = 0;	bSendStatus = 1;	}														// Достигнуто 0.7 секунды
-
+	
 	mlsec++;
-	if (mlsec >= 5)	{	mlsec = 0;	readProvod = 1;	}																	// Достигнуто 0.5 секунды
-
+	if (mlsec >= 5)	{		mlsec = 0;	tstProvod = 1;		}															// Достигнуто 0.5 секунды
+	else	{
+		if(bitNotZar != pred_bitNotZar) 	cntIzmZar++;																//если изменилось состояние по сравнению с предыдущим
+		pred_bitNotZar = bitNotZar; 																									//запомнили состояние
+		if(bitNotRaz != pred_bitNotRaz) 	cntIzmRaz++;																//если изменилось состояние по сравнению с предыдущим
+		pred_bitNotRaz = bitNotRaz; 																									//запомнили состояние
+	}	
+	
 	if (tVkl_ZRU)		tVkl_ZRU--;																											// Ожидание Вкл_ЗРУ
 
 	if (set100ms) 	{	yes100ms = 1;	set100ms = 0;}
 	else							yes100ms = 0;
 }
 		
+/*/=================================================================================================================================================
+void SysTick_Handler_wrk()		// Обработчик до 24.02.25
+//=================================================================================================================================================
+{
+	if ((bTimeOutCmd)&&(secTimeOutCmd<(10-iMUK_ZRU)))	{	secTimeOutCmd++;	}					// Обслуживание таймаута 1 сек
+	else																		{	secTimeOutCmd = 0;	bTimeOutCmd = 0;	}
+	
+	secST++;
+	if (secST >= 10)	{	secST = 0;	AddSec = 1;	}																		// Достигнута секунда
+
+	secStat++;
+	if (secStat >= 7)	{	secStat = 0;	bSendStatus = 1;	}														// Достигнуто 0.7 секунды
+
+	mlsec++;
+	if (mlsec >= 5)	{	mlsec = 0;	tstProvod = 1;	}																	// Достигнуто 0.5 секунды
+
+	if (tVkl_ZRU)		tVkl_ZRU--;																											// Ожидание Вкл_ЗРУ
+
+	if (set100ms) 	{	yes100ms = 1;	set100ms = 0;}
+	else							yes100ms = 0;
+}
+*/	
 
 //=================================================================================================================================================
 void UART1_IRQHandler(void)
