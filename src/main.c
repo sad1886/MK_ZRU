@@ -299,14 +299,11 @@ float GetParamFromCANFrame(volatile union uBytes64 ArrayFrames[], unsigned int f
 //-------------------------------------------------------------------------------------------------------------------------
 //функция создает телеметрию 72АК для третьего МК ЗРУ
 //возвращает номер выбранного МК БЭ (0 или 1). Если возвращает 2, значит связи с обоими МК1 и МК2 нет и необходимо искусственно пересчитать всех параметры АК
-int CreateAKtelem()
+void CreateAKtelem()
 {
-	volatile float Uak_array_1[72], Uak_array_2[72], Uab1_sum, Uab2_sum; //телеметрия 72АК для МК1 и МК2 БЭ
-//	volatile float Uab_be[6]; //значения шести датчиков Uаб всех трех МК БЭ, первые два - МК1, вторые дав - МК2, третьи два - МК3
-	unsigned int ind, fr, i, true_ind;
+	volatile float Uak_array_1[72], Uak_array_2[72], Uak_sr; //телеметрия 72АК для МК1 и МК2 БЭ
+	unsigned int ind, fr, i;
 	int connect[3];
-	
-	true_ind = 2; //пока не начали, считаем, что связи с другими МК БЭ нет
 	
 	//определяем, есть ли связь с МК БЭ
 	connect[0] = ( (bNoWrkCAN & (3<<0) ) != (3<<0) ); //если хотя бы один из двух каналов работает
@@ -343,35 +340,34 @@ int CreateAKtelem()
 		Uak_array_2[ind++] = GetParamFromCANFrame(Reciev_CanAB_All[1], 20, 1); //АК71
 		Uak_array_2[ind++] = GetParamFromCANFrame(Reciev_CanAB_All[1], 20, 3); //АК72			
 		
-		//находим сумму всех АК для каждого первых двух МК БЭ
-		Uab1_sum = Uab2_sum = 0;
-		for(i = 0; i < 72; i++)
+		//находим среднее Uак
+		Uak_sr = Uab/72; 
+		//выбираем для каждого Uак то значение, которое меньше отличается от среднего
+		for(i = 0; i < 72; i++) //пробегаем по всем 72 значениям АК
 		{
-			Uab1_sum += Uak_array_1[i];
-			Uab2_sum += Uak_array_2[i];
+			if(abs_f(Uak_array_1[i] - Uak_sr) < abs_f(Uak_array_2[i] - Uak_sr)) 
+				Uak_array[i] = Uak_array_1[i];
+			else
+				Uak_array[i] = Uak_array_2[i];
 		}
-		
-		//до вызова этой функции мы уже ранее посчитали наиболее правдоподобное значение Uab
-		if( abs_f(Uab1_sum - Uab) < abs_f(Uab2_sum - Uab) ) //если первый МК БЭ выдал сумму с меньшим отклонением
-			true_ind = 0; //то считаем, что его телеметрию мы должны брать за основу
-		else 
-			true_ind = 1; //иначе за основу берем телеметрию второго МК БЭ			
 	}
 	else
 	{
-		if(connect[0])
-			true_ind = 0;
-		else if(connect[1])
-			true_ind = 1;
-		else 
-			return 2; //если связи нет с обоими МК, то выходим с кодом 2
+		if(connect[0]) //если связь только с МК1
+			for(i = 0; i < 72; i++) 
+					Uak_array[i] = Uak_array_1[i];
+		else if(connect[1]) //если связь только с МК2
+			for(i = 0; i < 72; i++) 
+					Uak_array[i] = Uak_array_2[i];
+		else //если нет связи ни с МК1, ни с МК2, то все 72АК МК3 должны быть равны среднему
+		{
+			Uak_sr = Uab/72; //просто берем напряжение и делим его на 72
+			for(i = 0; i < 72; i++)
+				Uak_array[i] = Uak_sr;
+		}			
 	}
-	
-	//заполняем массивы МК3 ЗРУ данными одного из двух МК, тем самым имитируя полученную телеметрию
-	for(i = 0; i < nFrameABCAN; i++)
-		Reciev_CanAB[i].data64 = Reciev_CanAB_All[true_ind][i].data64;
-	
-	return true_ind;
+		
+	return;
 }
 //-------------------------------------------------------------------------------------------------------------------------
 //функция получает из КАНовских фреймов необходимые нам параметры
@@ -382,7 +378,6 @@ void GetDataFromCan()
 	float sum;
 	float Uab1[3], Uab2[3], Uab_sr12[3], Uab_sr_123, num_sr_123, Uab_delta[3], Uab_maxdelta, Uab_sum; 
 	int connect[3], ind_of_maxdelta;
-	int mk3_ind;
 	
 	//определяем, есть ли связь с МК БЭ
 	connect[0] = ( (bNoWrkCAN & (3<<0) ) != (3<<0) ); //если хотя бы один из двух каналов работает
@@ -458,16 +453,9 @@ void GetDataFromCan()
 	else													stat1[iMUK_ZRU] &= ~bPC;	
 	
 	//72 напряжения на АК
-	mk3_ind = 0;
-	if(nMUK_ZRU==nMUK3_ZRU) //если имеем дело с МК3, то прежде чем работать по штатному алгоритму, необходимо имитировать телеметрию 72АК
+	if(nMUK_ZRU==nMUK3_ZRU) //если имеем дело с МК3, то для него телеметрия 72 АК формируется специальным образом
 	{
-		mk3_ind = CreateAKtelem();
-	}
-	if( (nMUK_ZRU==nMUK3_ZRU) && (mk3_ind == 2) ) //если имеем дело с МК3 ЗРУ и связи с первыми двумя МК БЭ нет
-	{
-		Uak_array[0] = Uab/72; //просто берем напряжение и делим его на 72
-		for(i = 0; i < 72; i++)
-			Uak_array[i] = Uak_array[0];
+		CreateAKtelem();
 	}
 	else //во всех остальных случаях работаем штатно
 	{
