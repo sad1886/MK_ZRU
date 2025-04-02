@@ -310,7 +310,7 @@ void CreateAKtelem()
 	connect[1] = ( (bNoWrkCAN & (3<<2) ) != (3<<2) ); //если хотя бы один из двух каналов работает
 	connect[2] = ( (bNoWrkCAN & (3<<4) ) != (3<<4) ); //если хотя бы один из двух каналов работает
 	
-	if(connect[0] && connect[1]) //если есть связь и с МК1 и с МК2
+	if(connect[0]) //если есть связь с МК1
 	{
 		//получаем телеметрию МК1
 		ind = 0; fr = 2;
@@ -324,8 +324,11 @@ void CreateAKtelem()
 			Uak_array_1[ind++] = GetParamFromCANFrame(Reciev_CanAB_All[0], fr, 7);	
 		}
 		Uak_array_1[ind++] = GetParamFromCANFrame(Reciev_CanAB_All[0], 20, 1); //АК71
-		Uak_array_1[ind++] = GetParamFromCANFrame(Reciev_CanAB_All[0], 20, 3); //АК72	
-		
+		Uak_array_1[ind++] = GetParamFromCANFrame(Reciev_CanAB_All[0], 20, 3); //АК72		
+	}
+	
+	if(connect[1]) //если есть связь с МК2
+	{	
 		//получаем телеметрию МК2
 		ind = 0; fr = 2;
 		Uak_array_2[ind++] = GetParamFromCANFrame(Reciev_CanAB_All[1], fr, 5); //АК1
@@ -338,8 +341,11 @@ void CreateAKtelem()
 			Uak_array_2[ind++] = GetParamFromCANFrame(Reciev_CanAB_All[1], fr, 7);	
 		}
 		Uak_array_2[ind++] = GetParamFromCANFrame(Reciev_CanAB_All[1], 20, 1); //АК71
-		Uak_array_2[ind++] = GetParamFromCANFrame(Reciev_CanAB_All[1], 20, 3); //АК72			
-		
+		Uak_array_2[ind++] = GetParamFromCANFrame(Reciev_CanAB_All[1], 20, 3); //АК72				
+	}
+	
+	if(connect[0] && connect[1]) //если есть связь и с МК1 и с МК2
+	{		
 		//находим среднее Uак
 		Uak_sr = Uab/72; 
 		//выбираем для каждого Uак то значение, которое меньше отличается от среднего
